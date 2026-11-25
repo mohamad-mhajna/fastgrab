@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+*.fgpart
+*.fgpart.json
+*.fgpart.json.tmp
+.venv/
+.idea/
+.vscode/
