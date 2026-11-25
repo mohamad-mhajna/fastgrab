@@ -184,6 +184,8 @@ class Download:
         self.downloaded = 0          # bytes on disk (including from earlier sessions)
         self.count_lock = threading.Lock()
         self.active = 0
+        self.t_start = time.time()
+        self.session_start_bytes = 0   # bytes already on disk when this session began
 
     # -- setup -----------------------------------------------------------------
     def start(self):
@@ -215,6 +217,8 @@ class Download:
             first = (seg, probe)          # probe body becomes connection #1's stream
         self.table = SegmentTable(segments)
         self.downloaded = self.size - sum(s.end - s.pos for s in segments)
+        self.session_start_bytes = self.downloaded
+        self.t_start = time.time()
         return self.run_segmented(first)
 
     def load_state(self):
@@ -384,7 +388,10 @@ class Download:
         os.replace(self.part_path, target)
         if os.path.exists(self.state_path):
             os.remove(self.state_path)
+        took = max(time.time() - self.t_start, 1e-6)
+        got = self.downloaded - self.session_start_bytes
         print(f"Done -> {target}")
+        print(f"Time : {fmt_time(took)} ({took:.1f} s), average {fmt_size(got / took)}/s")
 
     def add_bytes(self, n):
         with self.count_lock:
