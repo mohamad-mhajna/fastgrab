@@ -5,7 +5,7 @@
 ![deps](https://img.shields.io/badge/dependencies-none-brightgreen)
 ![license](https://img.shields.io/badge/license-MIT-green)
 
-A multi-connection download manager in a single Python file, built with **only the standard library**.
+**Up to 10× faster downloads.** A multi-connection download manager in a single Python file, built with **only the standard library**.
 
 It speeds up downloads the same way IDM does: it splits a file into byte ranges, downloads them over several connections in parallel, and keeps every connection busy until the last byte by **stealing work** from the slowest one. If the download is interrupted (Ctrl+C, a dropped connection, even a crash or power cut), it resumes where it left off.
 
@@ -20,14 +20,17 @@ Done -> ./big.iso
 
 ## Benchmark
 
-30 MB file from a test server that limits each connection to 2 MB/s (this kind of per-connection limit is common on real servers):
+60 MB file from a test server that limits each connection to 2 MB/s (this kind of per-connection limit is common on real servers). Each setting was run twice, and both runs gave the same time:
 
-| Connections | Time | Speed |
-|---|---|---|
-| 1 (like a normal browser download) | 15.5 s | 2.0 MB/s |
-| 8 (fastgrab default) | **2.3 s** | **~14 MB/s** |
+| Connections | Time | Speed | vs. 1 connection |
+|---|---|---|---|
+| 1 (like a normal browser download) | 30.5 s | 2.0 MB/s | 1× |
+| 8 (default) | 4.0 s | 15.1 MB/s | **7.6×** |
+| 16 (`-c 16`) | 2.4 s | 25.2 MB/s | **12.7×** |
 
-That's **6.7× faster**, and the SHA-256 of both files matches the original.
+Every downloaded file had the same SHA-256 as the original.
+
+> How much faster you get depends on the server and your connection. If a single connection already uses all of your bandwidth, extra connections can't add more speed.
 
 ## Features
 
