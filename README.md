@@ -41,6 +41,16 @@ That's **6.7× faster**, and the SHA-256 of both files matches the original.
 - Custom headers (`Cookie`, `Referer`, …) for downloads that need you to be logged in
 - Zero dependencies, so it runs anywhere Python 3.10+ runs (Windows, macOS, Linux)
 
+## Install (Windows)
+
+```powershell
+powershell -ExecutionPolicy Bypass -File install.ps1
+```
+
+This copies fastgrab to `%LOCALAPPDATA%\Programs\fastgrab` and adds that folder to your **user** PATH. Your other PATH entries aren't touched, and a backup is saved first. No admin rights are needed. Then open a new terminal and run `fastgrab URL` from anywhere. To remove it, run `uninstall.ps1`, which removes only what the installer added.
+
+On macOS/Linux, just run `python3 fastgrab.py URL`.
+
 ## Usage
 
 ```bash

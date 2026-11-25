@@ -62,7 +62,7 @@ class Handler(BaseHTTPRequestHandler):
                 self.wfile.write(DATA[pos:pos + n])
                 pos += n
                 time.sleep(per_step)
-        except (BrokenPipeError, ConnectionResetError):
+        except ConnectionError:      # client closed on purpose (Linux: BrokenPipe/Reset, Windows: Aborted)
             pass
 
 

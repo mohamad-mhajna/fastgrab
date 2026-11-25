@@ -56,6 +56,7 @@ class Server:
     def close(self):
         self.proc.kill()
         self.proc.wait()
+        self.proc.stdout.close()
 
 
 def run_fastgrab(url, out, *extra):
