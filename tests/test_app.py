@@ -27,11 +27,15 @@ class AppTest(unittest.TestCase):
         env = dict(os.environ, HOME=cls.tmp, USERPROFILE=cls.tmp, APPDATA=cls.tmp)
         cmd = os.environ.get("FASTGRAB_APP_CMD")
         cmd = shlex.split(cmd, posix=os.name != "nt") if cmd else [sys.executable, os.path.join(ROOT, "fastgrab_app.py")]
+        cls.log = open(os.path.join(cls.tmp, "app.log"), "w+")
         cls.proc = subprocess.Popen(cmd + ["--no-window"], env=env, cwd=ROOT,
-                                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                                    stdout=cls.log, stderr=subprocess.STDOUT)
         data = os.path.join(cls.tmp, "FastGrab") if os.name == "nt" else os.path.join(cls.tmp, ".config", "fastgrab")
         info = os.path.join(data, "running.json")
-        for _ in range(150):
+        r = None
+        for _ in range(300):
+            if cls.proc.poll() is not None:
+                break
             if os.path.exists(info):
                 try:
                     with open(info) as f:
@@ -40,8 +44,10 @@ class AppTest(unittest.TestCase):
                 except ValueError:
                     pass
             time.sleep(0.1)
-        else:
-            raise RuntimeError("app did not start")
+        if r is None:
+            cls.proc.kill()
+            cls.log.seek(0)
+            raise RuntimeError(f"app did not start (looked for {info}):\n{cls.log.read()[-3000:]}")
         cls.base = f"http://127.0.0.1:{r['port']}"
         cls.token = r["token"]
         cls.downloads = os.path.join(cls.tmp, "Downloads")
@@ -52,6 +58,7 @@ class AppTest(unittest.TestCase):
     def tearDownClass(cls):
         cls.proc.kill()
         cls.proc.wait()
+        cls.log.close()
         cls.srv.close()
 
     def call(self, path, body=None, token=True, host=None):
