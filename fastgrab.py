@@ -34,14 +34,14 @@ import urllib.parse
 import urllib.request
 from email.message import Message
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 
 CHUNK = 64 * 1024            # bytes read per socket read
 MIN_SPLIT = 512 * 1024       # never create segments smaller than this
 ALIGN = 4096                 # split points are 4 KiB aligned
 MAX_RETRIES = 5              # consecutive failures (without progress) per connection
 TIMEOUT = 20                 # socket timeout, seconds
-UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) fastgrab/1.0"  # keep in sync with __version__
+UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) fastgrab/1.1"  # keep in sync with __version__
 
 
 # ----------------------------------------------------------------- segments --
@@ -185,8 +185,20 @@ def pick_filename(resp, url):
 # ------------------------------------------------------------------ download --
 
 class Download:
-    def __init__(self, url, out_dir=".", connections=8, headers=None):
+    def __init__(self, url, out_dir=".", connections=8, headers=None, quiet=False,
+                 filename=None, name_hook=None):
         self.url = url
+        self.forced_name = filename  # keep this name (e.g. when the app resumes a download)
+        self.name_hook = name_hook   # lets the app make a name unique before any file is created
+        self.quiet = quiet           # True when used by the app (no terminal output)
+        self.status = "connecting"   # connecting | downloading | completed | paused | failed
+        self.message = ""
+        self.info = None
+        self.size = None
+        self.table = None
+        self.result_path = None
+        self.cur_speed = 0.0
+        self._hist = []
         self.out_dir = out_dir
         self.connections = max(1, connections)
         self.headers = headers or {}
@@ -202,15 +214,20 @@ class Download:
     def start(self):
         probe = open_url(self.url, self.headers, start=0)
         info = parse_probe(probe, self.url)
+        if self.forced_name:
+            info["filename"] = self.forced_name
+        elif self.name_hook:
+            info["filename"] = self.name_hook(info["filename"])
         self.info = info
         self.size = info["size"]
+        self.status = "downloading"
         self.final_path = os.path.join(self.out_dir, info["filename"])
         self.part_path = self.final_path + ".fgpart"
         self.state_path = self.part_path + ".json"
 
-        print(f"File : {info['filename']}")
-        print(f"Size : {fmt_size(self.size) if self.size else 'unknown'}")
-        print(f"Resumable: {'yes' if info['resumable'] else 'no (single connection)'}")
+        self.say(f"File : {info['filename']}")
+        self.say(f"Size : {fmt_size(self.size) if self.size else 'unknown'}")
+        self.say(f"Resumable: {'yes' if info['resumable'] else 'no (single connection)'}")
 
         if not info["resumable"] or not self.size:
             return self.run_single(probe)
@@ -244,9 +261,9 @@ class Download:
                 st.get("etag") == self.info["etag"] and
                 st.get("last_modified") == self.info["last_modified"])
         if not same:
-            print("File changed on the server since last time, starting over.")
+            self.say("File changed on the server since last time, starting over.")
             return None
-        print("Resuming previous download.")
+        self.say("Resuming previous download.")
         return [Segment(p, e) for p, e in st["segments"]]
 
     def save_state(self, data_fd):
@@ -282,7 +299,7 @@ class Download:
                     last_save = time.time()
         except KeyboardInterrupt:
             self.stop.set()
-            print("\nPausing...")
+            self.say("\nPausing...")
             for t in threads:
                 t.join()
         self.show_progress(final=True)
@@ -295,11 +312,14 @@ class Download:
         self.save_state(data_fd)
         os.close(data_fd)
         if self.fatal:
-            print(f"Failed: {self.fatal}")
+            self.status = "failed"
+            self.say(f"Failed: {self.fatal}")
         elif self.stop.is_set():
-            print("Paused. Run the same command again to resume.")
+            self.status = "paused"
+            self.say("Paused. Run the same command again to resume.")
         else:
-            print("Failed: no connection could make progress. Run again to retry.")
+            self.status = "failed"
+            self.say("Failed: no connection could make progress. Run again to retry.")
         return False
 
     def worker(self, wid, first):
@@ -368,6 +388,8 @@ class Download:
             with open(self.part_path, "wb") as f:
                 self.bump_active(+1)
                 while True:
+                    if self.stop.is_set():
+                        raise KeyboardInterrupt
                     data = resp.read(CHUNK)
                     if not data:
                         break
@@ -377,12 +399,15 @@ class Download:
                 f.flush()
                 os.fsync(f.fileno())
         except KeyboardInterrupt:
-            print("\nStopped. This server doesn't support resume, so it will restart from 0.")
+            self.status = "paused"
+            self.say("\nStopped. This server doesn't support resume, so it will restart from 0.")
             return False
         finally:
             resp.close()
+            self.bump_active(-1)
         if self.size and self.downloaded != self.size:
-            print("\nFailed: download was cut short.")
+            self.status = "failed"
+            self.say("\nFailed: download was cut short.")
             return False
         self.show_progress(final=True)
         self.finish()
@@ -399,10 +424,12 @@ class Download:
         os.replace(self.part_path, target)
         if os.path.exists(self.state_path):
             os.remove(self.state_path)
+        self.result_path = target
+        self.status = "completed"
         took = max(time.time() - self.t_start, 1e-6)
         got = self.downloaded - self.session_start_bytes
-        print(f"Done -> {target}")
-        print(f"Time : {fmt_time(took)} ({took:.1f} s), average {fmt_size(got / took)}/s")
+        self.say(f"Done -> {target}")
+        self.say(f"Time : {fmt_time(took)} ({took:.1f} s), average {fmt_size(got / took)}/s")
 
     def add_bytes(self, n):
         with self.count_lock:
@@ -412,16 +439,46 @@ class Download:
         with self.count_lock:
             self.active += d
 
-    _hist = None
+    def say(self, msg):
+        self.message = msg.strip()
+        if not self.quiet:
+            print(msg)
 
-    def show_progress(self, final=False):
+    def sample_speed(self):
+        """Speed over the last 3 seconds (bytes/s)."""
         now = time.time()
-        if self._hist is None:
-            self._hist = []
         self._hist.append((now, self.downloaded))
         self._hist = [(t, b) for t, b in self._hist if now - t <= 3]
         t0, b0 = self._hist[0]
-        speed = (self.downloaded - b0) / (now - t0) if now > t0 else 0
+        self.cur_speed = (self.downloaded - b0) / (now - t0) if now > t0 else 0.0
+        return self.cur_speed
+
+    def snapshot(self):
+        """Everything a UI needs to draw this download (thread-safe enough to poll)."""
+        if self.table is not None:
+            with self.table.lock:
+                segs = sorted([s.start, s.pos, s.end, s.owner if s.owner is not None else -1]
+                              for s in self.table.segs)
+        elif self.size:
+            segs = [[0, min(self.downloaded, self.size), self.size, 0]]
+        else:
+            segs = []
+        speed = self.cur_speed if self.status == "downloading" else 0.0
+        left = (self.size - self.downloaded) if self.size else None
+        return {
+            "status": self.status, "message": self.message,
+            "filename": self.info["filename"] if self.info else None,
+            "size": self.size, "downloaded": self.downloaded, "speed": speed,
+            "eta": (left / speed) if (left is not None and speed > 0) else None,
+            "active": self.active, "connections": self.connections,
+            "resumable": self.info["resumable"] if self.info else None,
+            "path": self.result_path, "segments": segs,
+        }
+
+    def show_progress(self, final=False):
+        speed = self.sample_speed()
+        if self.quiet:
+            return
         if self.size:
             pct = self.downloaded / self.size
             bar = "#" * int(pct * 30) + "-" * (30 - int(pct * 30))

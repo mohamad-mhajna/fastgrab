@@ -1,0 +1,124 @@
+"""
+Tests for the FastGrab desktop app's backend (the local API the window talks to).
+Runs the app without opening a window. Set FASTGRAB_APP_CMD to test a built .exe.
+"""
+import hashlib
+import json
+import os
+import shlex
+import subprocess
+import sys
+import tempfile
+import time
+import unittest
+import urllib.error
+import urllib.request
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from test_fastgrab import ROOT, Server, sha256  # noqa: E402
+
+OPENER = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+
+
+class AppTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.tmp = tempfile.mkdtemp()
+        env = dict(os.environ, HOME=cls.tmp, USERPROFILE=cls.tmp, APPDATA=cls.tmp)
+        cmd = os.environ.get("FASTGRAB_APP_CMD")
+        cmd = shlex.split(cmd, posix=os.name != "nt") if cmd else [sys.executable, os.path.join(ROOT, "fastgrab_app.py")]
+        cls.proc = subprocess.Popen(cmd + ["--no-window"], env=env, cwd=ROOT,
+                                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        data = os.path.join(cls.tmp, "FastGrab") if os.name == "nt" else os.path.join(cls.tmp, ".config", "fastgrab")
+        info = os.path.join(data, "running.json")
+        for _ in range(150):
+            if os.path.exists(info):
+                try:
+                    with open(info) as f:
+                        r = json.load(f)
+                    break
+                except ValueError:
+                    pass
+            time.sleep(0.1)
+        else:
+            raise RuntimeError("app did not start")
+        cls.base = f"http://127.0.0.1:{r['port']}"
+        cls.token = r["token"]
+        cls.downloads = os.path.join(cls.tmp, "Downloads")
+        os.makedirs(cls.downloads, exist_ok=True)
+        cls.srv = Server(size_mb=12, rate_kb=1024)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.proc.kill()
+        cls.proc.wait()
+        cls.srv.close()
+
+    def call(self, path, body=None, token=True, host=None):
+        h = {"X-Token": self.token} if token else {}
+        if host:
+            h["Host"] = host
+        data = None
+        if body is not None:
+            data = json.dumps(body).encode()
+            h["Content-Type"] = "application/json"
+        req = urllib.request.Request(self.base + path, data=data, headers=h)
+        with OPENER.open(req, timeout=10) as r:
+            return json.load(r)
+
+    def item(self, id):
+        return next(i for i in self.call("/api/state")["items"] if i["id"] == id)
+
+    def wait_status(self, id, status, timeout=60):
+        end = time.time() + timeout
+        while time.time() < end:
+            it = self.item(id)
+            if it["status"] == status:
+                return it
+            time.sleep(0.2)
+        self.fail(f"never reached {status}: {it}")
+
+    def test_1_download_pause_resume(self):
+        id = self.call("/api/add", {"url": self.srv.url(), "dir": self.downloads, "connections": 8})["ids"][0]
+        it = self.wait_status(id, "downloading")
+        time.sleep(1.5)
+        it = self.item(id)
+        self.assertGreaterEqual(len(it["segments"]), 4, "segments should be visible to the UI")
+        self.call("/api/action", {"id": id, "action": "pause"})
+        it = self.wait_status(id, "paused")
+        self.assertTrue(0 < it["downloaded"] < it["size"])
+        self.call("/api/action", {"id": id, "action": "resume"})
+        it = self.wait_status(id, "completed")
+        self.assertEqual(sha256(it["path"]), self.srv.sha)
+
+    def test_2_same_name_twice_gets_unique_files(self):
+        ids = self.call("/api/add", {"urls": [self.srv.url("/same.bin"), self.srv.url("/same.bin")],
+                                     "dir": self.downloads})["ids"]
+        paths = [self.wait_status(i, "completed")["path"] for i in ids]
+        self.assertEqual(len(set(paths)), 2)
+        for p in paths:
+            self.assertEqual(sha256(p), self.srv.sha)
+
+    def test_3_cancel_deletes_only_partial_files(self):
+        id = self.call("/api/add", {"url": self.srv.url("/cancel-me.bin"), "dir": self.downloads})["ids"][0]
+        self.wait_status(id, "downloading")
+        time.sleep(1)
+        self.call("/api/action", {"id": id, "action": "cancel"})
+        self.assertFalse(any(i["id"] == id for i in self.call("/api/state")["items"]))
+        left = [f for f in os.listdir(self.downloads) if f.startswith("cancel-me")]
+        self.assertEqual(left, [])
+
+    def test_4_rejects_bad_links(self):
+        with self.assertRaises(urllib.error.HTTPError) as e:
+            self.call("/api/add", {"url": "file:///etc/passwd"})
+        self.assertEqual(e.exception.code, 400)
+
+    def test_5_api_is_protected(self):
+        for kw in ({"token": False}, {"host": "evil.example"}):
+            with self.assertRaises(urllib.error.HTTPError) as e:
+                self.call("/api/state", **kw)
+            self.assertEqual(e.exception.code, 403)
+
+
+if __name__ == "__main__":
+    unittest.main(verbosity=2)

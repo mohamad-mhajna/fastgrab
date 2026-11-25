@@ -5,9 +5,15 @@
 ![deps](https://img.shields.io/badge/dependencies-none-brightgreen)
 ![license](https://img.shields.io/badge/license-MIT-green)
 
-**Up to 10× faster downloads.** A multi-connection download manager in a single Python file, built with **only the standard library**.
+**Up to 10× faster downloads.** A multi-connection download manager with a desktop app and a command-line tool, built with **only the Python standard library**.
+
+![FastGrab desktop app](assets/screenshot.png)
 
 It speeds up downloads the same way IDM does: it splits a file into byte ranges, downloads them over several connections in parallel, and keeps every connection busy until the last byte by **stealing work** from the slowest one. If the download is interrupted (Ctrl+C, a dropped connection, even a crash or power cut), it resumes where it left off.
+
+The **desktop app** shows every connection live in the *connections map*: each color is one connection filling its own part of the file. When one finishes, it takes over half of the slowest one's remaining bytes.
+
+The **command-line tool** does the same in a terminal:
 
 ```
 $ python fastgrab.py https://example.com/big.iso -c 8
@@ -34,6 +40,16 @@ Every downloaded file had the same SHA-256 as the original.
 
 ## Features
 
+**Desktop app**
+- Dark glass interface with a downloads list, sidebar filters (status and file type) and search
+- Live **connections map** (per-connection segment bars) and a **speed graph**
+- Pause, resume, retry, cancel, open file, show in folder
+- Up to 3 downloads at once, with the rest queued
+- Paste a link anywhere with Ctrl+V, or drag a link onto the window
+- Downloads that were running when you closed the window resume on the next start
+
+**Engine**
+
 - **Parallel segmented downloads** over HTTP `Range` requests (default 8 connections)
 - **Dynamic work stealing**: idle connections split the largest remaining segment, so there's no slow tail at the end
 - **Crash-safe resume**: progress is checkpointed every second and survives `kill -9` and power loss
@@ -46,13 +62,14 @@ Every downloaded file had the same SHA-256 as the original.
 
 ## Download (no Python needed)
 
-Grab **`fastgrab.exe`** from the [Releases page](https://github.com/mohamadar8162-design/fastgrab/releases/latest). It's a single file with nothing to install:
+From the [Releases page](https://github.com/mohamadar8162-design/fastgrab/releases/latest):
 
-```powershell
-.\fastgrab.exe https://example.com/big.iso -c 16
-```
+- **`FastGrab.exe`** is the desktop app. Double-click it to open the window.
+- **`fastgrab.exe`** is the command-line tool: `.\fastgrab.exe https://example.com/big.iso -c 16`
 
-Each release `.exe` is built and tested automatically by GitHub Actions from the source in this repo.
+Both are single files with nothing to install. They're built and tested automatically by GitHub Actions from the source in this repo.
+
+To run the app from source instead: `python fastgrab_app.py`.
 
 ## Install from source (Windows)
 
@@ -75,6 +92,23 @@ python fastgrab.py URL -H "Cookie: session=abc" -H "Referer: https://site.com"
 Press **Ctrl+C** to pause. Run the same command again to resume.
 
 ## How it works
+
+### Desktop app architecture
+
+The app uses the same architecture as [Prism](https://github.com/FortoGraphy/prism-download-manager), with zero dependencies instead of Tauri + React:
+
+```mermaid
+flowchart LR
+    UI["ui/index.html<br/>(app window: Edge/Chrome --app)"] -- "JSON over 127.0.0.1<br/>+ per-run token" --> API["fastgrab_app.py<br/>local API + download manager"]
+    API --> ENG["fastgrab.py engine<br/>(one Download per item)"]
+    API --> DB[("downloads.json<br/>list + settings")]
+```
+
+- The window is a single HTML page shown by Edge (built into Windows) in app mode, so it has no tabs or address bar.
+- The page polls `/api/state` twice per second. The engine's `snapshot()` returns status, speed, ETA and every segment's `[start, pos, end, connection]`, which the page draws on a `<canvas>`.
+- **Security:** the API listens only on `127.0.0.1`, requires a random 192-bit token generated at each start, and checks the `Host` header. That stops websites you visit from controlling your downloads through cross-site requests or DNS rebinding.
+- When the window closes, the app pauses all downloads (saving their resume state) and exits.
+
 
 ### 1. Probe without a wasted request
 
@@ -125,6 +159,9 @@ The suite starts a local HTTP server (`tests/server.py`) that can throttle each 
 | `test_server_without_range_support` | single-connection fallback works |
 | `test_survives_dropped_connections` | a server that randomly drops connections still yields a correct file |
 | `test_splits_never_overlap_or_leave_gaps` | 2000 random claim/steal steps always tile the file exactly |
+| `test_app` (5 tests) | app API: live segments, pause/resume, unique names for same-name downloads, cancel deletes only its own partial files, rejects non-http links, 403 without token or with a foreign `Host` |
+
+The release pipeline runs `test_app` against the built **`FastGrab.exe`** itself before publishing it.
 
 Tests run on Linux, Windows and macOS through GitHub Actions.
 
@@ -133,7 +170,8 @@ Tests run on Linux, Windows and macOS through GitHub Actions.
 - [ ] Browser extension (Chrome MV3 + native messaging) to catch downloads automatically
 - [ ] Download queue and speed limiter (token bucket)
 - [ ] Optional checksum verification (`--sha256`)
-- [ ] GUI (Tkinter or PyQt)
+- [x] Desktop app
+- [ ] System tray icon and notifications
 
 ## Inspiration
 
