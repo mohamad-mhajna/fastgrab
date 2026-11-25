@@ -44,7 +44,17 @@ Every downloaded file had the same SHA-256 as the original.
 - Custom headers (`Cookie`, `Referer`, …) for downloads that need you to be logged in
 - Zero dependencies, so it runs anywhere Python 3.10+ runs (Windows, macOS, Linux)
 
-## Install (Windows)
+## Download (no Python needed)
+
+Grab **`fastgrab.exe`** from the [Releases page](https://github.com/mohamadar8162-design/fastgrab/releases/latest). It's a single file with nothing to install:
+
+```powershell
+.\fastgrab.exe https://example.com/big.iso -c 16
+```
+
+Each release `.exe` is built and tested automatically by GitHub Actions from the source in this repo.
+
+## Install from source (Windows)
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File install.ps1

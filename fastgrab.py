@@ -34,12 +34,14 @@ import urllib.parse
 import urllib.request
 from email.message import Message
 
+__version__ = "1.0.0"
+
 CHUNK = 64 * 1024            # bytes read per socket read
 MIN_SPLIT = 512 * 1024       # never create segments smaller than this
 ALIGN = 4096                 # split points are 4 KiB aligned
 MAX_RETRIES = 5              # consecutive failures (without progress) per connection
 TIMEOUT = 20                 # socket timeout, seconds
-UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) fastgrab/1.0"
+UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) fastgrab/1.0"  # keep in sync with __version__
 
 
 # ----------------------------------------------------------------- segments --
@@ -128,12 +130,21 @@ class FatalError(Exception):
     pass
 
 
+# Local addresses never go through a proxy (a system proxy can't reach your own machine).
+_DIRECT = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+_LOCAL_HOSTS = ("localhost", "127.0.0.1", "::1")
+
+
 def open_url(url, headers, start=None, end=None):
     h = {"User-Agent": UA, "Accept-Encoding": "identity", **headers}
     if start is not None:
         h["Range"] = f"bytes={start}-" + ("" if end is None else str(end))
     req = urllib.request.Request(url, headers=h)
+    host = (urllib.parse.urlparse(url).hostname or "").lower()
+    opener = _DIRECT if host in _LOCAL_HOSTS or host.startswith("127.") else None
     try:
+        if opener:
+            return opener.open(req, timeout=TIMEOUT)
         return urllib.request.urlopen(req, timeout=TIMEOUT)
     except urllib.error.HTTPError as e:
         if e.code in (401, 404, 410):
@@ -441,6 +452,7 @@ def fmt_time(s):
 
 def main():
     ap = argparse.ArgumentParser(description="Tiny multi-connection download manager")
+    ap.add_argument("--version", action="version", version=f"fastgrab {__version__}")
     ap.add_argument("url")
     ap.add_argument("-c", "--connections", type=int, default=8)
     ap.add_argument("-o", "--out", default=".", help="folder to save into")

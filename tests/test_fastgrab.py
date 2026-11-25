@@ -43,12 +43,15 @@ class Server:
              "--rate-kb", str(rate_kb), "--drop", str(drop)],
             stdout=subprocess.PIPE, text=True)
         self.sha = self.proc.stdout.readline().split()[1]
-        for _ in range(50):                        # wait until it accepts connections
+        for _ in range(100):                       # wait until it accepts connections
             try:
-                socket.create_connection(("127.0.0.1", self.port), 0.1).close()
+                socket.create_connection(("127.0.0.1", self.port), 0.5).close()
                 break
             except OSError:
                 time.sleep(0.1)
+        else:
+            self.close()
+            raise RuntimeError(f"test server on port {self.port} never became reachable")
 
     def url(self, path="/file.bin"):
         return f"http://127.0.0.1:{self.port}{path}"

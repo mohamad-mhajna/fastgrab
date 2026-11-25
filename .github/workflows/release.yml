@@ -1,0 +1,59 @@
+name: release
+
+# Builds a standalone fastgrab.exe (no Python needed) and publishes it on the
+# Releases page. Triggered by pushing a version tag, e.g.:
+#   git tag v1.0.0 && git push origin v1.0.0
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows-exe:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Build fastgrab.exe
+        run: |
+          python -m pip install --upgrade pip pyinstaller
+          pyinstaller --onefile --console --name fastgrab fastgrab.py
+
+      - name: Smoke test the .exe against the local test server
+        shell: bash
+        run: |
+          python tests/server.py --port 8765 --size-mb 16 --rate-kb 4096 > server.log &
+          sleep 4
+          ./dist/fastgrab.exe --version
+          ./dist/fastgrab.exe http://127.0.0.1:8765/file.bin -c 8 -o smoke
+          expected=$(head -1 server.log | cut -d' ' -f2)
+          actual=$(sha256sum smoke/file.bin | cut -d' ' -f1)
+          echo "expected $expected"
+          echo "actual   $actual"
+          test "$expected" = "$actual"
+
+      - name: Checksum
+        shell: bash
+        run: cd dist && sha256sum fastgrab.exe > fastgrab.exe.sha256 && cat fastgrab.exe.sha256
+
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/fastgrab.exe
+            dist/fastgrab.exe.sha256
+          body: |
+            **fastgrab.exe**: standalone Windows build. No Python needed.
+
+            1. Download `fastgrab.exe`
+            2. Open PowerShell in the folder where you saved it
+            3. Run `.\fastgrab.exe URL` (add `-c 16` for more connections)
+
+            Windows SmartScreen may warn about an unknown publisher, because the .exe isn't code-signed. Click **More info → Run anyway**. You can check the file with the `.sha256` checksum.
