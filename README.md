@@ -65,7 +65,7 @@ Every downloaded file had the same SHA-256 as the original.
 From the [Releases page](https://github.com/mohamadar8162-design/fastgrab/releases/latest):
 
 - **`FastGrab.exe`** is the desktop app. Double-click it to open the window.
-- **`fastgrab.exe`** is the command-line tool: `.\fastgrab.exe https://example.com/big.iso -c 16`
+- **`fastgrab-cli.exe`** is the command-line tool: `.\fastgrab-cli.exe https://example.com/big.iso -c 16`
 
 Both are single files with nothing to install. They're built and tested automatically by GitHub Actions from the source in this repo.
 
