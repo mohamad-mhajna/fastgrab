@@ -5,7 +5,7 @@
 ![deps](https://img.shields.io/badge/dependencies-none-brightgreen)
 ![license](https://img.shields.io/badge/license-MIT-green)
 
-**Up to 10× faster downloads.** A multi-connection download manager with a desktop app and a command-line tool, built with **only the Python standard library**.
+**Up to 10× faster downloads.** A multi-connection download manager with a desktop app and a command-line tool, built with **only the Python standard library**. Optional **video mode** downloads from YouTube, TikTok, Instagram, X, Facebook, Reddit, Vimeo and 1,000+ other sites.
 
 ![FastGrab desktop app](assets/screenshot.png)
 
@@ -48,6 +48,16 @@ Every downloaded file had the same SHA-256 as the original.
 - Paste a link anywhere with Ctrl+V, or drag a link onto the window
 - Downloads that were running when you closed the window resume on the next start
 
+**Video mode** (optional, powered by [yt-dlp](https://github.com/yt-dlp/yt-dlp))
+- Paste a link from YouTube, TikTok, Instagram, X/Twitter, Facebook, Reddit, Vimeo, Twitch, SoundCloud, Pinterest and more
+- A quality picker with the video's thumbnail: best, 4K, 1440p, 1080p, 720p, 480p, 360p or audio only
+- Pause, resume and cancel work the same as for files
+- If a link turns out to be a web page instead of a file, FastGrab automatically tries it as a video page
+- One click in the app installs video support (`yt-dlp[default]` + FFmpeg). The `.exe` already includes it
+- YouTube needs a JavaScript runtime ([Node.js](https://nodejs.org) 20+ or [Deno](https://deno.com)) installed, which yt-dlp requires for YouTube since late 2025
+
+> Only download videos you have the right to save. Many sites' terms of service restrict downloading.
+
 **Engine**
 
 - **Parallel segmented downloads** over HTTP `Range` requests (default 8 connections)
@@ -65,7 +75,7 @@ Every downloaded file had the same SHA-256 as the original.
 From the [Releases page](https://github.com/mohamadar8162-design/fastgrab/releases/latest):
 
 - **`FastGrab.exe`** is the desktop app. Double-click it to open the window.
-- **`fastgrab-cli.exe`** is the command-line tool: `.\fastgrab-cli.exe https://example.com/big.iso -c 16`
+- **`fastgrab-cli.exe`** is the command-line tool: `.\fastgrab-cli.exe https://example.com/big.iso -c 16`, or for a video: `.\fastgrab-cli.exe "https://youtu.be/..." -q 1080`
 
 Both are single files with nothing to install. They're built and tested automatically by GitHub Actions from the source in this repo.
 
@@ -159,6 +169,7 @@ The suite starts a local HTTP server (`tests/server.py`) that can throttle each 
 | `test_server_without_range_support` | single-connection fallback works |
 | `test_survives_dropped_connections` | a server that randomly drops connections still yields a correct file |
 | `test_splits_never_overlap_or_leave_gaps` | 2000 random claim/steal steps always tile the file exactly |
+| `test_app` video tests (3) | video info lookup, quality choice, pause/resume of a video, automatic web-page → video fallback, cancel removes temp files (uses yt-dlp's generic extractor on a local page) |
 | `test_app` (5 tests) | app API: live segments, pause/resume, unique names for same-name downloads, cancel deletes only its own partial files, rejects non-http links, 403 without token or with a foreign `Host` |
 
 The release pipeline runs `test_app` against the built **`FastGrab.exe`** itself before publishing it.

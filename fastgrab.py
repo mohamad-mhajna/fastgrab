@@ -34,14 +34,14 @@ import urllib.parse
 import urllib.request
 from email.message import Message
 
-__version__ = "1.1.0"
+__version__ = "1.2.0"
 
 CHUNK = 64 * 1024            # bytes read per socket read
 MIN_SPLIT = 512 * 1024       # never create segments smaller than this
 ALIGN = 4096                 # split points are 4 KiB aligned
 MAX_RETRIES = 5              # consecutive failures (without progress) per connection
 TIMEOUT = 20                 # socket timeout, seconds
-UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) fastgrab/1.1"  # keep in sync with __version__
+UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) fastgrab/1.2"  # keep in sync with __version__
 
 
 # ----------------------------------------------------------------- segments --
@@ -130,6 +130,10 @@ class FatalError(Exception):
     pass
 
 
+class WebPageError(Exception):
+    """The link opens a web page (HTML), not a file. It may be a video page."""
+
+
 # Local addresses never go through a proxy (a system proxy can't reach your own machine).
 _DIRECT = urllib.request.build_opener(urllib.request.ProxyHandler({}))
 _LOCAL_HOSTS = ("localhost", "127.0.0.1", "::1")
@@ -165,6 +169,11 @@ def parse_probe(resp, url):
     elif resp.headers.get("Content-Length"):
         info["size"] = int(resp.headers["Content-Length"])
     info["filename"] = pick_filename(resp, url)
+    ctype = (resp.headers.get("Content-Type") or "").split(";")[0].strip().lower()
+    path = urllib.parse.urlparse(info["final_url"]).path.lower()
+    if ctype in ("text/html", "application/xhtml+xml") and not path.endswith((".htm", ".html")):
+        resp.close()
+        raise WebPageError("This link opens a web page, not a file.")
     return info
 
 
@@ -507,6 +516,50 @@ def fmt_time(s):
     return f"{s // 3600}:{s // 60 % 60:02d}:{s % 60:02d}" if s >= 3600 else f"{s // 60}:{s % 60:02d}"
 
 
+def video_mode_for(url, force=False):
+    try:
+        import fastgrab_video
+    except ImportError:
+        return False
+    if not fastgrab_video.AVAILABLE:
+        if force or fastgrab_video.is_video_url(url):
+            if not force:
+                print('Video sites need yt-dlp: pip install "yt-dlp[default]"')
+        return False
+    return force or fastgrab_video.is_video_url(url)
+
+
+def run_video(url, out_dir, quality, connections):
+    import fastgrab_video
+    v = fastgrab_video.VideoDownload(url, out_dir, quality, connections)
+    t = threading.Thread(target=v.start, daemon=True)
+    t.start()
+    hist = []
+    try:
+        while t.is_alive():
+            s = v.snapshot()
+            if s["status"] == "downloading" and s["size"]:
+                pct = s["downloaded"] / s["size"]
+                bar = "#" * int(pct * 30) + "-" * (30 - int(pct * 30))
+                eta = fmt_time(s["eta"]) if s["eta"] else "--:--"
+                line = (f"[{bar}] {pct * 100:5.1f}%  {fmt_size(s['downloaded'])}/{fmt_size(s['size'])}"
+                        f"  {fmt_size(s['speed'])}/s  ETA {eta}  {s['message']}")
+            else:
+                line = s["message"] or s["status"]
+            sys.stdout.write("\r" + line[:110].ljust(110))
+            sys.stdout.flush()
+            time.sleep(0.3)
+    except KeyboardInterrupt:
+        v.stop.set()
+        t.join()
+    print()
+    if v.status == "completed":
+        print(f"Done -> {v.result_path}")
+        return True
+    print("Paused. Run the same command again to resume." if v.status == "paused" else f"Failed: {v.message}")
+    return False
+
+
 def main():
     ap = argparse.ArgumentParser(description="Tiny multi-connection download manager")
     ap.add_argument("--version", action="version", version=f"fastgrab {__version__}")
@@ -515,6 +568,8 @@ def main():
     ap.add_argument("-o", "--out", default=".", help="folder to save into")
     ap.add_argument("-H", "--header", action="append", default=[],
                     help='extra header, e.g. -H "Cookie: a=b" (repeatable)')
+    ap.add_argument("-q", "--quality", default="best",
+                    help="video sites only: best, 2160, 1440, 1080, 720, 480, 360 or audio")
     a = ap.parse_args()
     headers = {}
     for h in a.header:
@@ -522,7 +577,19 @@ def main():
         headers[k.strip()] = v.strip()
     os.makedirs(a.out, exist_ok=True)
     try:
-        ok = Download(a.url, a.out, a.connections, headers).start()
+        if video_mode_for(a.url):
+            ok = run_video(a.url, a.out, a.quality, a.connections)
+        else:
+            try:
+                ok = Download(a.url, a.out, a.connections, headers).start()
+            except WebPageError as e:
+                if video_mode_for(a.url, force=True):
+                    print("That link is a web page. Trying video mode...")
+                    ok = run_video(a.url, a.out, a.quality, a.connections)
+                else:
+                    print(f"Failed: {e} Install video support to download videos from "
+                          "websites: pip install \"yt-dlp[default]\"")
+                    ok = False
     except FatalError as e:
         print(f"Failed: {e}")
         ok = False

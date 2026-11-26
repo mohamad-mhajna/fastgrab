@@ -26,6 +26,7 @@ import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import fastgrab
+import fastgrab_video
 
 APP_NAME = "FastGrab"
 MAX_ACTIVE = 3                      # downloads running at the same time; the rest queue
@@ -74,6 +75,11 @@ class Item:
         self.message = saved.get("message", "")
         self.resumable = saved.get("resumable")
         self.resume_on_start = saved.get("resume_on_start", False)
+        self.kind = saved.get("kind", "file")          # "file" or "video"
+        self.choice = saved.get("choice", "best")       # video quality
+        self.site = saved.get("site")
+        self.thumbnail = saved.get("thumbnail")
+        self.parts = saved.get("parts", [])             # video temp files (for Cancel)
 
     def sync_from_dl(self):
         if self.dl is None:
@@ -85,6 +91,8 @@ class Item:
             if s[k] is not None:
                 setattr(self, k, s[k])
         self.downloaded = s["downloaded"]
+        if self.kind == "video":
+            self.parts = sorted(set(self.parts) | self.dl.parts)
 
     def to_saved(self):
         return {"id": self.id, "url": self.url, "out_dir": self.out_dir,
@@ -93,7 +101,9 @@ class Item:
                 "filename": self.filename, "size": self.size,
                 "downloaded": self.downloaded, "path": self.path,
                 "message": self.message, "resumable": self.resumable,
-                "resume_on_start": self.resume_on_start}
+                "resume_on_start": self.resume_on_start, "kind": self.kind,
+                "choice": self.choice, "site": self.site, "thumbnail": self.thumbnail,
+                "parts": self.parts}
 
     def view(self):
         """JSON for the UI."""
@@ -108,7 +118,8 @@ class Item:
                  "connections": self.connections, "resumable": self.resumable,
                  "path": self.path, "segments": []}
         s.update(id=self.id, url=self.url, out_dir=self.out_dir,
-                 added=self.added, finished=self.finished)
+                 added=self.added, finished=self.finished, kind=self.kind,
+                 choice=self.choice, site=self.site, thumbnail=self.thumbnail)
         return s
 
 
@@ -160,7 +171,7 @@ class Manager:
                 self.resume(it.id)
 
     # -- actions -------------------------------------------------------------------
-    def add(self, url, out_dir=None, connections=None):
+    def add(self, url, out_dir=None, connections=None, kind=None, choice=None, meta=None):
         url = (url or "").strip()
         if not url.lower().startswith(("http://", "https://")):
             raise ValueError("Only http:// and https:// links are supported")
@@ -169,6 +180,13 @@ class Manager:
         connections = max(1, min(32, connections))
         os.makedirs(out_dir, exist_ok=True)
         it = Item(url, out_dir, connections)
+        if kind == "video" or (kind is None and fastgrab_video.is_video_url(url)):
+            it.kind = "video"
+            it.choice = choice if choice in fastgrab_video.QUALITIES else "best"
+            meta = meta or {}
+            it.filename = meta.get("title")
+            it.site = meta.get("site")
+            it.thumbnail = meta.get("thumbnail")
         with self.lock:
             self.items[it.id] = it
         self.schedule()
@@ -190,7 +208,9 @@ class Manager:
 
     def _start(self, it):
         it.status = "connecting"
-        if it.filename and it.downloaded:     # resuming: keep the same name and .fgpart
+        if it.kind == "video":
+            it.dl = fastgrab_video.VideoDownload(it.url, it.out_dir, it.choice, it.connections)
+        elif it.filename and it.downloaded:     # resuming: keep the same name and .fgpart
             it.dl = fastgrab.Download(it.url, it.out_dir, it.connections, quiet=True,
                                       filename=it.filename)
         else:
@@ -200,6 +220,17 @@ class Manager:
         def run():
             try:
                 it.dl.start()
+            except fastgrab.WebPageError:
+                if fastgrab_video.AVAILABLE:   # a page, not a file: try it as a video page
+                    with self.lock:
+                        it.kind, it.choice, it.filename = "video", "best", None
+                        it.dl = fastgrab_video.VideoDownload(it.url, it.out_dir, "best",
+                                                             it.connections)
+                    it.dl.start()
+                else:
+                    it.dl.status = "failed"
+                    it.dl.message = ("This link opens a web page, not a file. Install video "
+                                     "support (top bar) to download videos from websites.")
             except Exception as e:           # probe failed, bad URL, disk error...
                 it.dl.status = "failed"
                 it.dl.message = str(e) or e.__class__.__name__
@@ -207,6 +238,8 @@ class Manager:
                 it.sync_from_dl()
                 if it.status == "completed":
                     it.finished = time.time()
+                    if it.kind == "video":
+                        it.parts = []
                 it.dl = None
             self.save()
             self.schedule()
@@ -237,6 +270,8 @@ class Manager:
 
     def resume(self, id):
         it = self.items[id]
+        if it.dl is not None and it.dl.stop.is_set() and it.thread:
+            it.thread.join(timeout=30)        # a pause is still finishing: let it end first
         if it.dl is None and it.status in ("paused", "failed"):
             it.status = "queued"
             it.message = ""
@@ -247,7 +282,11 @@ class Manager:
         """Stop and delete the unfinished file (only files fastgrab created)."""
         it = self.items[id]
         self.pause(id)
-        if it.status != "completed" and it.filename:
+        if it.kind == "video" and it.status != "completed":
+            v = fastgrab_video.VideoDownload(it.url, it.out_dir)
+            v.parts = set(it.parts)
+            v.cleanup()
+        elif it.status != "completed" and it.filename:
             part = os.path.join(it.out_dir, it.filename) + ".fgpart"
             for p in (part, part + ".json", part + ".json.tmp"):
                 if os.path.exists(p):
@@ -283,7 +322,40 @@ class Manager:
         with self.lock:
             items = [it.view() for it in self.items.values()]
         items.sort(key=lambda v: v["added"], reverse=True)
-        return {"items": items, "settings": self.settings, "version": fastgrab.__version__}
+        return {"items": items, "settings": self.settings, "version": fastgrab.__version__,
+                "video": {**fastgrab_video.status(), **VIDEO_INSTALL}}
+
+
+# --------------------------------------------------------------- video setup --
+
+VIDEO_INSTALL = {"installing": False, "install_error": None}
+
+
+def install_video_support():
+    """pip-install yt-dlp (+ FFmpeg) for this Python. Only when running from source."""
+    if getattr(sys, "frozen", False):
+        VIDEO_INSTALL["install_error"] = "Video support is built into the .exe version."
+        return
+    VIDEO_INSTALL.update(installing=True, install_error=None)
+    try:
+        flags = 0x08000000 if os.name == "nt" else 0
+        r = subprocess.run([sys.executable, "-m", "pip", "install", "--user", "--upgrade",
+                            "yt-dlp[default]", "imageio-ffmpeg"],
+                           capture_output=True, text=True, timeout=600, creationflags=flags)
+        if r.returncode != 0:
+            raise RuntimeError((r.stderr or r.stdout).strip().splitlines()[-1])
+        import importlib
+        import site
+        site.addsitedir(site.getusersitepackages())
+        importlib.invalidate_caches()
+        importlib.reload(fastgrab_video)
+        fastgrab_video.tools(refresh=True)
+        if not fastgrab_video.AVAILABLE:
+            raise RuntimeError("Installed, but please restart FastGrab to finish.")
+    except Exception as e:
+        VIDEO_INSTALL["install_error"] = str(e)[:300]
+    finally:
+        VIDEO_INSTALL["installing"] = False
 
 
 # ------------------------------------------------------------------ desktop --
@@ -416,9 +488,19 @@ class App:
                 try:
                     p = urllib.parse.urlparse(self.path).path
                     if p == "/api/add":
-                        ids = [m.add(u, body.get("dir"), body.get("connections"))
+                        ids = [m.add(u, body.get("dir"), body.get("connections"),
+                                     body.get("kind"), body.get("choice"), body.get("meta"))
                                for u in body.get("urls", [body.get("url")]) if u]
                         return self._send(200, {"ids": ids})
+                    if p == "/api/probe":
+                        url = (body.get("url") or "").strip()
+                        if not url.lower().startswith(("http://", "https://")):
+                            return self._send(400, {"error": "Not a link"})
+                        return self._send(200, fastgrab_video.probe(url))
+                    if p == "/api/install-video":
+                        if not VIDEO_INSTALL["installing"]:
+                            threading.Thread(target=install_video_support, daemon=True).start()
+                        return self._send(200, {"ok": True})
                     if p == "/api/action":
                         id, act = body["id"], body["action"]
                         if act == "pause":
@@ -455,7 +537,10 @@ class App:
                 except KeyError:
                     self._send(404, {"error": "no such download"})
                 except Exception as e:
-                    self._send(400, {"error": str(e)})
+                    if sys.stderr:
+                        import traceback
+                        traceback.print_exc()
+                    self._send(400, {"error": str(e) or e.__class__.__name__})
 
         ThreadingHTTPServer.daemon_threads = True
         self.server = ThreadingHTTPServer(("127.0.0.1", port), Handler)

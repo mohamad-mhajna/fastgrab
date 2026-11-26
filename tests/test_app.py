@@ -20,7 +20,7 @@ from test_fastgrab import ROOT, Server, sha256  # noqa: E402
 OPENER = urllib.request.build_opener(urllib.request.ProxyHandler({}))
 
 
-class AppTest(unittest.TestCase):
+class AppBase(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.tmp = tempfile.mkdtemp()
@@ -70,8 +70,12 @@ class AppTest(unittest.TestCase):
             data = json.dumps(body).encode()
             h["Content-Type"] = "application/json"
         req = urllib.request.Request(self.base + path, data=data, headers=h)
-        with OPENER.open(req, timeout=10) as r:
-            return json.load(r)
+        try:
+            with OPENER.open(req, timeout=15) as r:
+                return json.load(r)
+        except urllib.error.HTTPError as e:
+            e.msg = f"{e.msg}: {e.read().decode(errors='replace')}"
+            raise
 
     def item(self, id):
         return next(i for i in self.call("/api/state")["items"] if i["id"] == id)
@@ -85,6 +89,8 @@ class AppTest(unittest.TestCase):
             time.sleep(0.2)
         self.fail(f"never reached {status}: {it}")
 
+
+class AppTest(AppBase):
     def test_1_download_pause_resume(self):
         id = self.call("/api/add", {"url": self.srv.url(), "dir": self.downloads, "connections": 8})["ids"][0]
         it = self.wait_status(id, "downloading")
@@ -125,6 +131,50 @@ class AppTest(unittest.TestCase):
             with self.assertRaises(urllib.error.HTTPError) as e:
                 self.call("/api/state", **kw)
             self.assertEqual(e.exception.code, 403)
+
+
+try:
+    import yt_dlp  # noqa: F401
+    HAVE_VIDEO = True
+except ImportError:
+    HAVE_VIDEO = False
+
+
+@unittest.skipUnless(HAVE_VIDEO or os.environ.get("FASTGRAB_APP_CMD"), "yt-dlp not installed")
+class VideoTest(AppBase):
+    """Video mode, using yt-dlp's generic extractor on a local page with a <video>."""
+
+    def test_6_probe_and_download_video(self):
+        info = self.call("/api/probe", {"url": self.srv.url("/watch")})
+        self.assertIn("best", info["choices"])
+        self.assertEqual(info["title"].split(" (")[0], "Test Clip")
+        id = self.call("/api/add", {"url": self.srv.url("/watch?v=1"), "dir": self.downloads,
+                                    "kind": "video", "choice": "best"})["ids"][0]
+        self.wait_status(id, "downloading")
+        time.sleep(1.5)
+        self.call("/api/action", {"id": id, "action": "pause"})
+        it = self.wait_status(id, "paused")
+        self.assertTrue(0 < it["downloaded"] < it["size"], it)
+        self.call("/api/action", {"id": id, "action": "resume"})
+        it = self.wait_status(id, "completed", timeout=90)
+        self.assertEqual(it["kind"], "video")
+        self.assertEqual(sha256(it["path"]), self.srv.sha)
+
+    def test_7_web_page_link_falls_back_to_video(self):
+        id = self.call("/api/add", {"url": self.srv.url("/watch?v=2"), "dir": self.downloads})["ids"][0]
+        it = self.wait_status(id, "completed", timeout=90)
+        self.assertEqual(it["kind"], "video")
+        self.assertEqual(sha256(it["path"]), self.srv.sha)
+
+    def test_8_cancel_video_removes_temp_files(self):
+        id = self.call("/api/add", {"url": self.srv.url("/watch?v=3"), "dir": self.downloads,
+                                    "kind": "video"})["ids"][0]
+        self.wait_status(id, "downloading")
+        time.sleep(1.5)
+        self.call("/api/action", {"id": id, "action": "cancel"})
+        time.sleep(0.5)
+        left = [f for f in os.listdir(self.downloads) if "watch-3" in f]
+        self.assertEqual(left, [])
 
 
 if __name__ == "__main__":

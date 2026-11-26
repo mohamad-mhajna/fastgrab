@@ -132,7 +132,7 @@ input,select{font:inherit;color:inherit}
 .details{display:grid;grid-template-columns:1fr 300px;gap:18px;padding:16px 18px;min-height:0}
 .details.hide{display:none}
 .dleft{min-width:0;display:flex;flex-direction:column;gap:12px}
-.dtitle{display:flex;align-items:baseline;gap:10px}
+.dtitle{display:flex;align-items:center;gap:10px;min-width:0}
 .dtitle b{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .dtitle span{font-size:12px;color:var(--faint)}
 .lbl2{display:flex;justify-content:space-between;font-size:11px;text-transform:uppercase;letter-spacing:.9px;color:var(--faint);margin-bottom:6px}
@@ -161,6 +161,30 @@ canvas{display:block;width:100%}
 .drop.on{display:grid}
 .offline{position:fixed;inset:0;background:rgba(7,8,13,.85);backdrop-filter:blur(8px);display:none;place-items:center;z-index:30;text-align:center;color:var(--muted)}
 .offline.on{display:grid}
+/* video picker */
+.modal{position:fixed;inset:0;background:rgba(5,6,10,.62);backdrop-filter:blur(6px);display:none;place-items:center;z-index:25}
+.modal.on{display:grid}
+.mbox{width:560px;max-width:calc(100vw - 40px);border-radius:18px;background:rgba(20,22,32,.96);border:1px solid var(--line-2);box-shadow:0 30px 80px -20px rgba(0,0,0,.8);padding:22px;animation:tin .2s ease-out}
+.mhead{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.mhead b{font-size:15px}.mhead .x{margin-left:auto}
+.vinfo{display:flex;gap:14px;align-items:flex-start;margin-bottom:16px}
+.vthumb{width:176px;height:99px;border-radius:10px;object-fit:cover;background:#111522;flex:none;border:1px solid var(--line)}
+.vmeta{min-width:0}
+.vmeta .vt{font-weight:650;font-size:14px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;user-select:text}
+.vmeta .vs{color:var(--muted);font-size:12.5px;margin-top:6px}
+.qlabel{font-size:11px;text-transform:uppercase;letter-spacing:.9px;color:var(--faint);margin-bottom:8px}
+.qgrid{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.q{padding:8px 13px;border-radius:10px;border:1px solid var(--line-2);background:var(--panel-2);font-size:13px;font-weight:560}
+.q:hover{border-color:rgba(139,92,246,.6)}
+.q.on{background:rgba(139,92,246,.22);border-color:rgba(139,92,246,.9);color:#fff}
+.mnote{font-size:12px;color:var(--muted);background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.22);border-radius:9px;padding:8px 10px;margin-bottom:12px}
+.mfoot{display:flex;align-items:center;gap:10px}
+.mfoot small{color:var(--faint);font-size:11.5px;flex:1}
+.spin{width:22px;height:22px;border-radius:50%;border:3px solid rgba(255,255,255,.12);border-top-color:var(--a2);animation:rot .8s linear infinite;margin:6px auto 12px}
+@keyframes rot{to{transform:rotate(360deg)}}
+.mcenter{text-align:center;color:var(--muted);padding:10px 0 4px}
+.mcenter p{margin:6px 0 14px;font-size:13px}
+.d-thumb{width:64px;height:36px;border-radius:6px;object-fit:cover;border:1px solid var(--line);display:none}
 .offline b{display:block;color:var(--text);font-size:16px;margin-bottom:6px}
 </style>
 </head>
@@ -201,7 +225,7 @@ canvas{display:block;width:100%}
     <div class="addbar glass">
       <div class="url">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1 1"/><path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1-1"/></svg>
-        <input id="url" placeholder="Paste a download link…" spellcheck="false" autocomplete="off">
+        <input id="url" placeholder="Paste a download link or a video link (YouTube, TikTok, Instagram…)" spellcheck="false" autocomplete="off">
       </div>
       <div class="conns" title="How many connections to use">Connections
         <select id="conns"><option>1</option><option>2</option><option>4</option><option selected>8</option><option>12</option><option>16</option><option>24</option><option>32</option></select>
@@ -229,7 +253,7 @@ canvas{display:block;width:100%}
 
     <section class="details glass hide" id="details">
       <div class="dleft">
-        <div class="dtitle"><b id="d-name"></b><span id="d-sub"></span></div>
+        <div class="dtitle"><img class="d-thumb" id="d-thumb" alt=""><b id="d-name"></b><span id="d-sub"></span></div>
         <div>
           <div class="lbl2"><span>Connections map</span><em id="d-conns"></em></div>
           <canvas id="segs"></canvas>
@@ -253,6 +277,7 @@ canvas{display:block;width:100%}
     </section>
   </main>
 </div>
+<div class="modal" id="vmodal"><div class="mbox" id="vbox"></div></div>
 <div class="toasts" id="toasts"></div>
 <div class="drop" id="drop">Drop the link to download it</div>
 <div class="offline" id="offline"><div><b>FastGrab has closed</b>Start FastGrab again to continue. Paused downloads will resume from where they stopped.</div></div>
@@ -288,8 +313,11 @@ function ext(name){ const m=/\.([a-z0-9]{1,9})$/i.exec(name||""); return m?m[1].
 function kind(name){ const e=ext(name); for(const k in TYPES) if(TYPES[k].ext.split(" ").includes(e)) return k; return "other"; }
 function host(url){ try{return new URL(url).host}catch{return url} }
 function esc(s){ return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+const VIDEO_HOSTS = ["youtube.com","youtu.be","tiktok.com","instagram.com","facebook.com","fb.watch","x.com","twitter.com","reddit.com","redd.it","vimeo.com","twitch.tv","soundcloud.com","dailymotion.com","dai.ly","pinterest.com","pin.it","threads.net","threads.com","linkedin.com","bilibili.com","streamable.com","kick.com","rumble.com","snapchat.com","bandcamp.com","ted.com"];
+function isVideoLink(u){ try{ const h=new URL(u).hostname.toLowerCase(); return VIDEO_HOSTS.some(v=>h===v||h.endsWith("."+v)); }catch{ return false; } }
+function cat(it){ if (it.kind==="video") return it.choice==="audio" ? "audio" : "video"; return kind(it.filename); }
 function matches(it){
-  const k = kind(it.filename);
+  const k = cat(it);
   const f = filter==="all" || (filter==="active" && ["downloading","connecting","queued"].includes(it.status))
     || (filter==="completed" && it.status==="completed") || (filter==="stopped" && ["paused","failed"].includes(it.status))
     || filter===k;
@@ -320,10 +348,10 @@ const STATUS_TEXT = {downloading:"Downloading",connecting:"Connecting",queued:"Q
 /* ---------- rendering ---------- */
 function renderRow(it){
   let el = rowEls.get(it.id);
-  const k = kind(it.filename), t = TYPES[k] || {color:"#9097a8",label:(ext(it.filename)||"FILE").slice(0,4).toUpperCase()};
+  const k = cat(it), t = TYPES[k] || {color:"#9097a8",label:(ext(it.filename)||"FILE").slice(0,4).toUpperCase()};
   const pct = it.size ? Math.min(100, it.downloaded/it.size*100) : (it.status==="completed"?100:0);
   const live = it.status==="downloading";
-  const sig = [it.status, it.filename].join("|");
+  const sig = [it.status, it.filename, it.kind, it.site].join("|");
   if (!el){
     el = document.createElement("div");
     el.className = "row"; el.dataset.id = it.id;
@@ -337,7 +365,7 @@ function renderRow(it){
     const fi = el.querySelector(".ficon");
     fi.textContent = t.label; fi.style.color = t.color; fi.style.background = t.color+"22";
     el.querySelector(".fn").textContent = it.filename; el.querySelector(".fn").title = it.filename;
-    el.querySelector(".host").textContent = host(it.url);
+    el.querySelector(".host").textContent = it.kind==="video" ? `${it.site||host(it.url)} · ${QLABEL[it.choice]||it.choice}` : host(it.url);
     const pill = el.querySelector(".pill"); pill.className = "pill "+it.status; pill.textContent = STATUS_TEXT[it.status]||it.status;
     pill.title = it.message || "";
     el.querySelector(".acts").innerHTML = actionsFor(it);
@@ -361,7 +389,7 @@ function render(){
     if (["downloading","connecting","queued"].includes(it.status)) c.active++;
     if (it.status==="completed") c.completed++;
     if (["paused","failed"].includes(it.status)) c.stopped++;
-    const k = kind(it.filename); if (k in c) c[k]++;
+    const k = cat(it); if (k in c) c[k]++;
   }
   for (const k in c){ const e=$("#n-"+k); if(e) e.textContent=c[k]; }
   // total speed
@@ -390,6 +418,7 @@ function renderDetails(){
   $("#details").classList.toggle("hide", !it);
   if (!it) return;
   $("#d-name").textContent = it.filename;
+  const th = $("#d-thumb"); if (it.thumbnail){ if (th.src!==it.thumbnail) th.src=it.thumbnail; th.style.display="block"; } else th.style.display="none";
   $("#d-sub").textContent = it.size ? fmtSize(it.size) : "";
   $("#d-status").textContent = (STATUS_TEXT[it.status]||it.status) + (it.message && it.status!=="completed" && it.status!=="downloading" ? " — "+it.message : "");
   $("#d-done").textContent = it.size ? `${fmtSize(it.downloaded)} of ${fmtSize(it.size)}` : fmtSize(it.downloaded);
@@ -399,7 +428,8 @@ function renderDetails(){
   $("#d-added").textContent = new Date(it.added*1000).toLocaleString();
   $("#d-open").disabled = $("#d-folder").disabled = it.status!=="completed";
   const live = it.status==="downloading";
-  $("#d-conns").textContent = live ? `${it.active} of ${it.connections} connections active · ${it.segments.length} segments`
+  $("#d-conns").textContent = it.kind==="video" ? (it.segments.length>1 ? "video and audio streams" : "video stream") + (it.message ? " · "+it.message : "")
+    : live ? `${it.active} of ${it.connections} connections active · ${it.segments.length} segments`
     : it.segments.length ? `${it.segments.length} segments` : `${it.connections} connections`;
   const h = hist[it.id] || [];
   const peak = Math.max(0,...h);
@@ -482,7 +512,7 @@ async function poll(){
       }
       seenStatus[it.id] = it.status;
     }
-    render();
+    render(); watchInstall();
   }catch(e){ if (++failures>=4) $("#offline").classList.add("on"); }
 }
 
@@ -490,6 +520,8 @@ async function poll(){
 async function add(text){
   const urls = String(text||"").split(/\s+/).filter(u=>/^https?:\/\//i.test(u));
   if (!urls.length){ toast("Not a download link","Links must start with http:// or https://","#fbbf24"); return; }
+  if (urls.length===1 && isVideoLink(urls[0])){ $("#url").value=""; openVideo(urls[0]); return; }
+  if (urls.some(isVideoLink) && !(state.video||{}).available){ openVideo(urls.find(isVideoLink)); return; }
   try{
     const r = await api("/api/add",{urls, connections:+$("#conns").value});
     $("#url").value=""; selected = r.ids[0]; filter="all"; setFilter("all");
@@ -549,6 +581,70 @@ document.addEventListener("drop", e => {
 });
 window.addEventListener("resize", renderDetails);
 document.addEventListener("keydown", e => { if (e.key==="Delete" && selected && !e.target.closest("input")){ const it=state.items.find(i=>i.id===selected); if(it&&it.status==="completed") api("/api/action",{id:selected,action:"remove"}).then(poll); } });
+
+/* ---------- video picker ---------- */
+const QLABEL = {best:"Best quality","2160":"4K","1440":"1440p","1080":"1080p","720":"720p","480":"480p","360":"360p",audio:"Audio only"};
+let vq = "best", vinfo = null, vurl = null;
+function closeVideo(){ $("#vmodal").classList.remove("on"); vinfo=null; vurl=null; }
+function mhead(t){ return `<div class="mhead"><b>${esc(t)}</b><button class="ib x" onclick="closeVideo()" title="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>`; }
+async function openVideo(url){
+  vurl = url; $("#vmodal").classList.add("on");
+  const v = state.video || {};
+  if (!v.available){ return showInstall(); }
+  $("#vbox").innerHTML = mhead("Video download") + `<div class="mcenter"><div class="spin"></div><p>Getting video info from ${esc(host(url))}…</p></div>`;
+  try{
+    vinfo = await api("/api/probe",{url});
+    if (vurl !== url) return;
+    vq = vinfo.choices.includes("1080") ? "1080" : vinfo.choices[0];
+    renderVideo();
+  }catch(e){
+    if (vurl !== url) return;
+    $("#vbox").innerHTML = mhead("Can't download this video") + `<div class="mcenter"><p>${esc(e.message)}</p><button class="ghost" onclick="closeVideo()">Close</button></div>`;
+  }
+}
+function renderVideo(){
+  const i = vinfo, dur = i.duration ? fmtTime(i.duration).replace(/(\d+)s$/,"$1s") : "";
+  const notes = [];
+  if (!i.ffmpeg && i.choices.length>2) notes.push("FFmpeg isn't available, so on some sites (like YouTube) only lower qualities come with sound. FastGrab picks the best one that includes sound.");
+  if (!i.js_runtime && /youtube/i.test(i.site||"")) notes.push("No JavaScript runtime (Node.js or Deno) was found, so YouTube may fail or offer fewer qualities.");
+  $("#vbox").innerHTML = mhead("Video download") + `
+    <div class="vinfo">${i.thumbnail?`<img class="vthumb" src="${esc(i.thumbnail)}" alt="">`:`<div class="vthumb"></div>`}
+      <div class="vmeta"><div class="vt">${esc(i.title)}</div><div class="vs">${esc([i.site,i.uploader,dur].filter(Boolean).join(" · "))}</div></div></div>
+    <div class="qlabel">Quality</div>
+    <div class="qgrid">${i.choices.map(c=>`<button class="q ${c===vq?"on":""}" data-q="${c}">${QLABEL[c]||c}</button>`).join("")}</div>
+    ${notes.map(n=>`<div class="mnote">${esc(n)}</div>`).join("")}
+    <div class="mfoot"><small>Only download videos you have the right to save.</small>
+      <button class="ghost" onclick="closeVideo()">Cancel</button>
+      <button class="go" id="vgo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 4v12m0 0-5-5m5 5 5-5M5 20h14"/></svg>Download</button></div>`;
+  $("#vbox").querySelectorAll(".q").forEach(b => b.onclick = () => { vq=b.dataset.q; renderVideo(); });
+  $("#vgo").onclick = async () => {
+    try{
+      const r = await api("/api/add",{urls:[vurl], kind:"video", choice:vq, connections:+$("#conns").value,
+                                      meta:{title:i.title, site:i.site, thumbnail:i.thumbnail}});
+      selected = r.ids[0]; closeVideo(); setFilter("all"); toast("Video download started", i.title, "#8b5cf6"); poll();
+    }catch(e){ toast("Couldn't add video", e.message, "#f87171"); }
+  };
+}
+function showInstall(){
+  const v = state.video || {};
+  $("#vbox").innerHTML = mhead("Add video support") + `<div class="mcenter">
+    ${v.installing ? `<div class="spin"></div><p>Installing yt-dlp and FFmpeg… this takes about a minute.</p>`
+    : `<p>Downloading from YouTube, TikTok, Instagram, X and 1,000+ other sites needs the free <b>yt-dlp</b> add-on (about 15 MB).</p>
+       ${v.install_error?`<div class="mnote" style="text-align:left">${esc(v.install_error)}</div>`:""}
+       <button class="go" style="margin:0 auto" id="vinstall">Install video support</button>`}</div>`;
+  const b = $("#vinstall"); if (b) b.onclick = () => api("/api/install-video",{}).then(()=>{ state.video.installing=true; showInstall(); });
+}
+let wasInstalling = false;
+function watchInstall(){
+  const v = state.video || {};
+  if ($("#vmodal").classList.contains("on") && !vinfo && vurl){
+    if (v.installing || wasInstalling !== v.installing) { if (!v.available) showInstall(); }
+    if (wasInstalling && !v.installing && v.available){ toast("Video support installed","You can now download from video sites","#34d399"); openVideo(vurl); }
+  }
+  wasInstalling = !!v.installing;
+}
+$("#vmodal").addEventListener("click", e => { if (e.target.id==="vmodal") closeVideo(); });
+document.addEventListener("keydown", e => { if (e.key==="Escape") closeVideo(); });
 
 api("/api/state").then(s => { $("#conns").value = String(s.settings.connections||8); }).catch(()=>{});
 poll(); setInterval(poll, 500);

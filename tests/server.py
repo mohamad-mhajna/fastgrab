@@ -34,6 +34,15 @@ class Handler(BaseHTTPRequestHandler):
         pass
 
     def do_GET(self):
+        if self.path.startswith("/watch"):           # a web page with a video on it
+            page = (b"<html><head><title>Test Clip</title></head><body>"
+                    b"<video controls src='/media/clip.mp4'></video></body></html>")
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(page)))
+            self.end_headers()
+            self.wfile.write(page)
+            return
         norange = self.path.startswith("/norange")
         total = len(DATA)
         start, end = 0, total - 1
@@ -48,6 +57,8 @@ class Handler(BaseHTTPRequestHandler):
             self.send_response(200)
         self.send_header("Content-Length", str(end - start + 1))
         self.send_header("ETag", ETAG)
+        if self.path.split("?")[0].endswith(".mp4"):
+            self.send_header("Content-Type", "video/mp4")
         self.send_header("Accept-Ranges", "none" if norange else "bytes")
         self.end_headers()
         step = 64 * 1024

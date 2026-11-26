@@ -31,10 +31,11 @@ jobs:
       - name: Build
         shell: bash
         run: |
-          python -m pip install --upgrade pip pyinstaller
-          pyinstaller --onefile --console  --name fastgrab-cli --icon assets/fastgrab.ico fastgrab.py
+          python -m pip install --upgrade pip pyinstaller "yt-dlp[default]" imageio-ffmpeg
+          VIDEO="--hidden-import fastgrab_video --collect-data yt_dlp_ejs --collect-all imageio_ffmpeg"
+          pyinstaller --onefile --console  --name fastgrab-cli --icon assets/fastgrab.ico $VIDEO fastgrab.py
           pyinstaller --onefile --windowed --name FastGrab --icon assets/fastgrab.ico \
-                      --add-data "ui:ui" fastgrab_app.py
+                      --add-data "ui:ui" $VIDEO fastgrab_app.py
 
       - name: Test fastgrab-cli.exe (command line)
         timeout-minutes: 5
@@ -44,6 +45,8 @@ jobs:
           sleep 4
           ./dist/fastgrab-cli.exe --version
           ./dist/fastgrab-cli.exe http://127.0.0.1:8765/file.bin -c 8 -o smoke
+          ./dist/fastgrab-cli.exe "http://127.0.0.1:8765/watch" -o smoke-video
+          test "$(sha256sum smoke-video/*.mp4 | cut -d' ' -f1)" = "$(head -1 server.log | cut -d' ' -f2)"
           expected=$(head -1 server.log | cut -d' ' -f2)
           actual=$(sha256sum smoke/file.bin | cut -d' ' -f1)
           echo "expected $expected"; echo "actual   $actual"
@@ -73,7 +76,7 @@ jobs:
           body: |
 
             ### Downloads
-            - **FastGrab.exe**: the desktop app. Double-click it to open the window.
+            - **FastGrab.exe**: the desktop app. Double-click it to open the window. Video mode (YouTube, TikTok, Instagram…) is built in. For YouTube, install [Node.js](https://nodejs.org) or [Deno](https://deno.com).
             - **fastgrab-cli.exe**: the command-line version (`.\fastgrab-cli.exe URL -c 16`).
 
             No Python needed. Windows SmartScreen may warn about an unknown publisher, because the files aren't code-signed: click **More info → Run anyway**. You can check the files against `SHA256SUMS.txt`.
