@@ -275,6 +275,20 @@ input[type=time].inp{color-scheme:dark;width:116px}
 .sbtn:hover:not(:disabled){border-color:rgba(139,92,246,.6)}
 .sbtn:disabled{opacity:.4;cursor:default}
 .sbtn.primary{background:var(--grad);border:0;color:#fff;font-weight:600}
+.upop .mbox{width:440px;padding:26px 26px 22px;text-align:center}
+.upop .uicon{width:54px;height:54px;border-radius:16px;margin:2px auto 14px;display:grid;place-items:center;background:var(--grad);box-shadow:0 12px 30px -10px rgba(139,92,246,.7)}
+.upop .uicon svg{width:26px;height:26px;color:#fff}
+.upop .uicon.bad{background:#3a1d24;box-shadow:none}.upop .uicon.bad svg{color:#f87171}
+.upop h3{margin:0 0 6px;font-size:18px}
+.upop p{margin:0 auto;color:var(--muted);font-size:13px;line-height:1.55;max-width:360px}
+.upop .unotes{margin:14px 0 0;text-align:start;max-height:150px;overflow-y:auto;background:rgba(0,0,0,.25);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:12.5px;line-height:1.6;color:var(--muted);white-space:pre-wrap}
+.upop .unotes:empty{display:none}
+.upop .uwarn{margin-top:12px;font-size:12px;color:#fbbf24}
+.upop .uwarn:empty{display:none}
+.upop .ubtns{display:flex;gap:10px;margin-top:20px}
+.upop .ubtns .sbtn{flex:1;height:40px;font-size:13.5px}
+.upop .ubusy{display:none;margin-top:16px;color:var(--muted);font-size:13px}
+.upop.busy .ubusy{display:block}.upop.busy .ubtns{display:none}
 .keybox{display:flex;gap:6px;align-items:center}
 .keybox code{font:12.5px var(--mono);background:rgba(0,0,0,.35);border:1px solid var(--line);border-radius:8px;padding:7px 10px;direction:ltr;user-select:all;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .steps{margin:6px 0 0;padding-inline-start:20px;color:var(--muted);font-size:12.5px;line-height:1.7}
@@ -443,6 +457,14 @@ input[type=time].inp{color-scheme:dark;width:116px}
 <div class="toasts" id="toasts"></div>
 <div class="drop" id="drop"></div>
 <div class="overlay" id="offline"><div><b data-t="closed_t"></b><span data-t="closed_d"></span></div></div>
+<div class="modal upop" id="umodal" role="dialog" aria-modal="true" aria-labelledby="u-ptitle"><div class="mbox">
+  <div class="uicon" id="u-picon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg></div>
+  <h3 id="u-ptitle"></h3><p id="u-ptext"></p>
+  <div class="unotes" id="u-pnotes" dir="auto"></div>
+  <div class="uwarn" id="u-pwarn"></div>
+  <div class="ubusy"><div class="spin"></div><span id="u-pbusy"></span></div>
+  <div class="ubtns"><button class="sbtn" id="u-plater" data-t="later"></button><button class="sbtn primary" id="u-pgo"></button></div>
+</div></div>
 <div class="overlay" id="restarting"><div><div class="spin"></div><b data-t="restarting"></b></div></div>
 
 <script>
@@ -480,7 +502,7 @@ p_sleep:"Putting the PC to sleep",p_shutdown:"Shutting down the PC",p_quit:"Clos
 sched_card:"Schedule {a}–{b}",sched_card_wait:"{n} waiting · starts {t}",sched_card_run:"Running now · until {t}",
 check_now:"Check now",checking:"Checking…",installing:"Installing…",up_to_date:"Everything is up to date",last_checked:"Last checked {t}",never_checked:"Not checked yet",
 video_ver:"Video support: yt-dlp {v}",video_none:"Video support: not installed",video_updated:"Video support updated to {v}",
-upd_avail:"FastGrab {v} is available",upd_install:"Update to {v}",upd_ready:"Update installed",upd_restart:"Restart FastGrab",upd_restart_d:"Restart to use the new version",upd_open:"Open download page",
+upd_avail:"FastGrab {v} is available",upd_install:"Update to {v}",upd_ready:"Update installed",upd_restart:"Restart FastGrab",upd_restart_d:"Restart to use the new version",upd_open:"Open download page",later:"Later",pop_avail_t:"Update available",pop_avail_d:"FastGrab {v} is ready. It takes a few seconds and FastGrab restarts by itself.",pop_now:"Update now",pop_restart_t:"Restart to finish updating",pop_restart_app:"FastGrab {v} is installed. Restart to start using it.",pop_restart_video:"Video support was updated to {v}. Restart to start using it.",pop_restart_now:"Restart now",pop_busy:"Downloading the update…",pop_warn:"Running downloads will pause and continue by themselves after the restart.",pop_err_t:"The update didn't work",pop_err_d:"Nothing was changed. You can try again later from Settings → Updates.",close:"Close",
 upd_err:"Update problem: {e}",auto_video:"Update video support automatically",auto_video_d:"Video sites change often; this keeps yt-dlp working (checked once a day)",
 auto_app:"Check for new FastGrab versions",auto_app_d:"Shows a notice when a new version is out on GitHub",
 ext_title:"FastGrab for Chrome and Edge",ext_d:"Catches downloads in your browser automatically and adds \"Download with FastGrab\" to the right-click menu.",
@@ -520,7 +542,7 @@ p_sleep:"سيدخل الكمبيوتر في وضع السكون",p_shutdown:"س�
 sched_card:"الجدول {a}–{b}",sched_card_wait:"{n} بالانتظار · يبدأ {t}",sched_card_run:"يعمل الآن · حتى {t}",
 check_now:"تحقّق الآن",checking:"جارٍ التحقق…",installing:"جارٍ التثبيت…",up_to_date:"كل شيء محدَّث",last_checked:"آخر تحقق {t}",never_checked:"لم يتم التحقق بعد",
 video_ver:"دعم الفيديو: yt-dlp {v}",video_none:"دعم الفيديو: غير مثبت",video_updated:"تم تحديث دعم الفيديو إلى {v}",
-upd_avail:"يتوفر FastGrab {v}",upd_install:"التحديث إلى {v}",upd_ready:"تم تثبيت التحديث",upd_restart:"إعادة تشغيل FastGrab",upd_restart_d:"أعد التشغيل لاستخدام الإصدار الجديد",upd_open:"فتح صفحة التنزيل",
+upd_avail:"يتوفر FastGrab {v}",upd_install:"التحديث إلى {v}",upd_ready:"تم تثبيت التحديث",upd_restart:"إعادة تشغيل FastGrab",upd_restart_d:"أعد التشغيل لاستخدام الإصدار الجديد",upd_open:"فتح صفحة التنزيل",later:"لاحقًا",pop_avail_t:"يتوفر تحديث",pop_avail_d:"FastGrab {v} جاهز. يستغرق ذلك بضع ثوانٍ ثم يُعاد تشغيل FastGrab تلقائيًا.",pop_now:"التحديث الآن",pop_restart_t:"أعد التشغيل لإكمال التحديث",pop_restart_app:"تم تثبيت FastGrab {v}. أعد التشغيل لبدء استخدامه.",pop_restart_video:"تم تحديث دعم الفيديو إلى {v}. أعد التشغيل لبدء استخدامه.",pop_restart_now:"إعادة التشغيل الآن",pop_busy:"جارٍ تنزيل التحديث…",pop_warn:"ستتوقف التنزيلات الجارية مؤقتًا وتُستأنف تلقائيًا بعد إعادة التشغيل.",pop_err_t:"لم ينجح التحديث",pop_err_d:"لم يتغير شيء. يمكنك المحاولة لاحقًا من الإعدادات ← التحديثات.",close:"إغلاق",
 upd_err:"مشكلة في التحديث: {e}",auto_video:"تحديث دعم الفيديو تلقائيًا",auto_video_d:"مواقع الفيديو تتغير كثيرًا؛ هذا يبقي yt-dlp يعمل (يُفحص مرة يوميًا)",
 auto_app:"البحث عن إصدارات جديدة من FastGrab",auto_app_d:"يُظهر تنبيهًا عند صدور إصدار جديد على GitHub",
 ext_title:"FastGrab لمتصفح Chrome وEdge",ext_d:"يلتقط التنزيلات في متصفحك تلقائيًا ويضيف \"تنزيل باستخدام FastGrab\" إلى قائمة النقر بزر الماوس الأيمن.",
@@ -560,7 +582,7 @@ p_sleep:"המחשב יעבור למצב שינה",p_shutdown:"המחשב ייכ�
 sched_card:"תזמון {a}–{b}",sched_card_wait:"{n} ממתינות · מתחיל ב-{t}",sched_card_run:"פועל עכשיו · עד {t}",
 check_now:"בדוק עכשיו",checking:"בודק…",installing:"מתקין…",up_to_date:"הכול מעודכן",last_checked:"נבדק לאחרונה {t}",never_checked:"עדיין לא נבדק",
 video_ver:"תמיכה בווידאו: yt-dlp {v}",video_none:"תמיכה בווידאו: לא מותקנת",video_updated:"התמיכה בווידאו עודכנה ל-{v}",
-upd_avail:"FastGrab {v} זמין",upd_install:"עדכן ל-{v}",upd_ready:"העדכון הותקן",upd_restart:"הפעל מחדש את FastGrab",upd_restart_d:"הפעל מחדש כדי להשתמש בגרסה החדשה",upd_open:"פתח את דף ההורדה",
+upd_avail:"FastGrab {v} זמין",upd_install:"עדכן ל-{v}",upd_ready:"העדכון הותקן",upd_restart:"הפעל מחדש את FastGrab",upd_restart_d:"הפעל מחדש כדי להשתמש בגרסה החדשה",upd_open:"פתח את דף ההורדה",later:"אחר כך",pop_avail_t:"יש עדכון",pop_avail_d:"FastGrab {v} מוכן. זה לוקח כמה שניות ו-FastGrab יופעל מחדש לבד.",pop_now:"עדכן עכשיו",pop_restart_t:"הפעל מחדש כדי לסיים את העדכון",pop_restart_app:"FastGrab {v} הותקן. הפעל מחדש כדי להתחיל להשתמש בו.",pop_restart_video:"התמיכה בווידאו עודכנה ל-{v}. הפעל מחדש כדי להתחיל להשתמש בה.",pop_restart_now:"הפעל מחדש עכשיו",pop_busy:"מוריד את העדכון…",pop_warn:"הורדות פעילות יושהו וימשיכו לבד אחרי ההפעלה מחדש.",pop_err_t:"העדכון לא הצליח",pop_err_d:"שום דבר לא השתנה. אפשר לנסות שוב מאוחר יותר דרך הגדרות ← עדכונים.",close:"סגור",
 upd_err:"בעיה בעדכון: {e}",auto_video:"עדכן תמיכה בווידאו אוטומטית",auto_video_d:"אתרי וידאו משתנים לעיתים קרובות; זה שומר על yt-dlp עובד (נבדק פעם ביום)",
 auto_app:"בדוק אם יש גרסאות חדשות של FastGrab",auto_app_d:"מציג הודעה כשיוצאת גרסה חדשה ב-GitHub",
 ext_title:"FastGrab ל-Chrome ול-Edge",ext_d:"תופס הורדות בדפדפן אוטומטית ומוסיף \"הורד עם FastGrab\" לתפריט הלחיצה הימנית.",
@@ -867,7 +889,7 @@ async function poll(){
     seenStatus[it.id] = it.status;
   }
   handleEvents();
-  render(); renderPower(); watchInstall();
+  render(); renderPower(); watchInstall(); renderUpdatePopup();
   if ($("#smodal").classList.contains("on")) renderSettings();
 }
 function handleEvents(){
@@ -906,6 +928,81 @@ function setFilter(f, quiet){
   const ind = $("#navind"); if (nav){ ind.style.opacity=1; ind.style.transform=`translateY(${nav.offsetTop}px)`; }
   if (!quiet) render(true); else render();
 }
+/* ------------------------------------------------------------ update popup */
+let upop = null;          // what the popup shows: {kind, key, v}
+let upopFlow = false;     // "Update now" was pressed: restart as soon as it's installed
+function cleanNotes(md){
+  return (md||"").replace(/\r/g,"").split("\n").map(l=>l.replace(/^#+\s*/,"").replace(/\*\*/g,"").replace(/`/g,"").replace(/^\s*[-*]\s+/,"• ")).filter((l,i,a)=>l.trim()||(i>0&&a[i-1].trim())).join("\n").trim();
+}
+function updatePopupWanted(){
+  const u = state.update||{}, a = u.app||{}, later = state.settings.update_later||{};
+  const snoozed = key => later.key===key && Date.now()/1000 < (later.until||0);
+  if (upopFlow){                                     // our own "Update now"
+    if (u.error) return {kind:"error", key:"error"};
+    return {kind:"busy", key:"busy"};
+  }
+  if (u.busy) return null;
+  if (u.restart_needed){
+    const v = a.installed ? a.latest : (u.video||{}).updated_to;
+    const k = {kind:"restart", key:"restart:"+(a.installed?"app:":"video:")+v, v, app:!!a.installed};
+    return snoozed(k.key) ? null : k;
+  }
+  if (a.available && !a.installed){
+    const k = {kind:"avail", key:"avail:"+a.latest, v:a.latest};
+    return snoozed(k.key) ? null : k;
+  }
+  return null;
+}
+function renderUpdatePopup(){
+  if (restarting) return;
+  const want = updatePopupWanted(), m = $("#umodal");
+  // never pop over the settings window or the video picker; Settings → Updates shows the same
+  if (!want || (!upopFlow && ($("#smodal").classList.contains("on") || $("#vmodal").classList.contains("on")))){
+    if (m.classList.contains("on") && !upopFlow) closeModal("umodal");
+    upop = null; return;
+  }
+  const a = (state.update||{}).app||{};
+  const busyNow = state.items.some(i=>["downloading","connecting"].includes(i.status));
+  m.classList.toggle("busy", want.kind==="busy");
+  $("#u-picon").classList.toggle("bad", want.kind==="error");
+  if (want.kind==="avail"){
+    $("#u-ptitle").textContent = t("pop_avail_t");
+    $("#u-ptext").innerHTML = t("pop_avail_d",{v:B(want.v)});
+    $("#u-pnotes").textContent = cleanNotes(a.notes);
+    $("#u-pgo").textContent = t("pop_now");
+  } else if (want.kind==="restart"){
+    $("#u-ptitle").textContent = t("pop_restart_t");
+    $("#u-ptext").innerHTML = t(want.app ? "pop_restart_app" : "pop_restart_video", {v:B(want.v)});
+    $("#u-pnotes").textContent = "";
+    $("#u-pgo").textContent = t("pop_restart_now");
+  } else if (want.kind==="busy"){
+    $("#u-ptitle").textContent = t("pop_avail_t");
+    $("#u-pbusy").textContent = t("pop_busy");
+  } else {
+    $("#u-ptitle").textContent = t("pop_err_t");
+    $("#u-ptext").textContent = t("pop_err_d");
+    $("#u-pnotes").textContent = (state.update||{}).error || "";
+    $("#u-pgo").textContent = t("close");
+  }
+  $("#u-plater").style.display = want.kind==="error" ? "none" : "";
+  $("#u-pwarn").textContent = busyNow && want.kind!=="error" ? t("pop_warn") : "";
+  upop = want;
+  if (!m.classList.contains("on")) openModal("umodal");
+  // installed by "Update now": restart straight away
+  if (upopFlow && a.installed && (state.update||{}).restart_needed && !(state.update||{}).busy){ upopFlow = false; restartApp(); }
+}
+function laterUpdate(){
+  if (upop && upop.key && upop.kind!=="busy") saveSetting({update_later: upop.key});
+  closeModal("umodal");
+}
+$("#u-plater").onclick = laterUpdate;
+$("#u-pgo").onclick = async () => {
+  if (!upop) return;
+  if (upop.kind==="avail"){ upopFlow = true; renderUpdatePopup(); try{ await api("/api/update/install",{}); }catch(e){ upopFlow=false; toast(t("upd_err",{e:e.message}),"","#f87171"); } poll(); }
+  else if (upop.kind==="restart"){ closeModal("umodal"); restartApp(); }
+  else { upopFlow = false; closeModal("umodal"); }
+};
+
 async function restartApp(){ restarting = true; $("#restarting").classList.add("on"); try{ await api("/api/restart",{}); }catch{} }
 async function installUpdate(){ try{ await api("/api/update/install",{}); poll(); }catch(e){ toast(t("upd_err",{e:e.message}),"","#f87171"); } }
 
@@ -949,7 +1046,7 @@ document.addEventListener("drop", e => { e.preventDefault(); dragDepth=0; $("#dr
   add(e.dataTransfer.getData("text/uri-list") || e.dataTransfer.getData("text/plain")); });
 window.addEventListener("resize", () => { renderDetails(); setFilter(filter,true); });
 document.addEventListener("keydown", e => {
-  if (e.key==="Escape"){ closeModal("vmodal"); closeModal("smodal"); }
+  if (e.key==="Escape"){ closeModal("vmodal"); closeModal("smodal"); if ($("#umodal").classList.contains("on") && !upopFlow) laterUpdate(); }
   if (e.key==="Delete" && selected && !e.target.closest("input")){ const it=state.items.find(i=>i.id===selected); if(it&&it.status==="completed") api("/api/action",{id:selected,action:"remove"}).then(poll); }
 });
 
@@ -957,7 +1054,7 @@ document.addEventListener("keydown", e => {
 function openModal(id){ $("#"+id).classList.add("on"); }
 function closeModal(id){ $("#"+id).classList.remove("on"); if (id==="vmodal"){ vinfo=null; vurl=null; } }
 document.querySelectorAll("[data-close]").forEach(b => b.onclick = () => closeModal(b.dataset.close));
-document.querySelectorAll(".modal").forEach(m => m.addEventListener("click", e => { if (e.target===m) closeModal(m.id); }));
+document.querySelectorAll(".modal").forEach(m => m.addEventListener("click", e => { if (e.target!==m) return; if (m.id==="umodal"){ if (!upopFlow) laterUpdate(); } else closeModal(m.id); }));
 
 /* ------------------------------------------------------------- video picker */
 let vq = "best", vinfo = null, vurl = null;

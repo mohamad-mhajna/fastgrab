@@ -287,6 +287,9 @@ class CloseWindow(unittest.TestCase):
                 saved = json.load(f)["settings"]
             self.assertFalse(saved["close_to_tray"])
             self.assertFalse(saved["keep_awake"])
+            later = app.call("/api/settings", {"update_later": "avail:9.9.9"})["update_later"]
+            self.assertEqual(later["key"], "avail:9.9.9", "update popup: Later")
+            self.assertAlmostEqual(later["until"], time.time() + 24 * 3600, delta=60)
             st = app.call("/api/state")
             self.assertEqual(st["windows"], WIN)
             self.assertFalse(st["awake"])

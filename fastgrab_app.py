@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
-FastGrab desktop app: a Prism-style window on top of the fastgrab engine.
+FastGrab desktop app: a window on top of the fastgrab engine.
 
     python fastgrab_app.py
 
-How it works (same architecture as Prism, but zero dependencies):
+How it works (zero dependencies):
   * the UI is a single HTML page (ui/index.html) shown in its own app window
     (Edge or Chrome in "--app" mode, which every Windows PC already has)
   * this script runs a small local HTTP API on 127.0.0.1 that the page talks to
@@ -180,6 +180,7 @@ DEFAULT_SETTINGS = {
     "close_to_tray": True,      # closing the window keeps downloads going (tray icon on Windows)
     "keep_awake": True,         # stop Windows sleeping while something is downloading
     "tray_hint_shown": False,
+    "update_later": None,       # {"key": what the update popup showed, "until": time} after "Later"
 }
 
 
@@ -266,6 +267,8 @@ class Manager:
         for k in ("auto_update_video", "check_app_updates", "close_to_tray", "keep_awake"):
             if k in body:
                 s[k] = bool(body[k])
+        if body.get("update_later"):          # update popup: "Later" = ask again in a day
+            s["update_later"] = {"key": str(body["update_later"])[:100], "until": time.time() + 24 * 3600}
         if body.get("new_ext_key"):
             s["ext_key"] = secrets.token_urlsafe(24)
         self.save()

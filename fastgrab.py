@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-fastgrab - a tiny multi-connection download manager (Prism/IDM-style engine).
+fastgrab - a tiny multi-connection download manager.
 
 Pure Python standard library, no pip installs needed.
 
@@ -10,7 +10,7 @@ Pure Python standard library, no pip installs needed.
 
 Press Ctrl+C to pause. Run the same command again to resume.
 
-How it works (same ideas as Prism's engine):
+How it works:
   1. Probe:   GET with "Range: bytes=0-". A 206 proves range support and gives the
               size, and that same response keeps streaming as connection #1.
   2. Steal:   every other connection takes the segment with the most bytes left
@@ -34,7 +34,7 @@ import urllib.parse
 import urllib.request
 from email.message import Message
 
-__version__ = "1.4.0"
+__version__ = "1.4.1"
 
 CHUNK = 64 * 1024            # bytes read per socket read
 MIN_SPLIT = 512 * 1024       # never create segments smaller than this

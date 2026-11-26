@@ -73,6 +73,7 @@ Time : 0:05 (5.4 s), average 36.9 MB/s
 **Auto-update**
 - yt-dlp updates itself daily from PyPI, verified against PyPI's SHA-256 (also inside the `.exe`, no pip needed). A broken update automatically falls back to the previous copy
 - FastGrab checks GitHub for new releases and updates itself (verified against the release's `SHA256SUMS.txt`), then restarts in the same window
+- A popup tells you when an update is ready, with what's new: **Update now** installs it and restarts FastGrab by itself (running downloads continue afterwards), **Later** asks again the next day. When video support has updated itself, it asks you to **Restart** to finish
 
 **Languages:** English, العربية and עברית, with a full right-to-left layout.
 
@@ -133,7 +134,7 @@ Press **Ctrl+C** to pause. Run the same command again to resume.
 
 ### Desktop app architecture
 
-The app uses the same architecture as [Prism](https://github.com/FortoGraphy/prism-download-manager), with zero dependencies instead of Tauri + React:
+The window is a web page shown in its own Edge/Chrome app window, talking to a small local server. That keeps FastGrab free of dependencies:
 
 ```mermaid
 flowchart LR
@@ -200,7 +201,7 @@ The suite starts a local HTTP server (`tests/server.py`) that can throttle each 
 | `test_features` (10) | scheduler window math, waiting / starting / pausing at the window edges, "Start now", when-done countdown + cancel + run-once, settings and languages, extension pairing key, cookies passed to a login-only file, video links opening the picker |
 | `test_update` (4) | yt-dlp update from a fake PyPI: checksum verified, loaded from the addons folder ahead of the installed copy, a wrong checksum rejected, a broken build falling back; **a full self-update**: FastGrab finds v9.9.9, installs it, restarts itself and the same session keeps working |
 | `extension.test.mjs` (6) | the extension's rules for which downloads to catch |
-| `ui_e2e.py` (12, run locally) | the app window in a real Chrome: every sidebar filter and the search box show the right downloads, and switching back to **All downloads** always brings every row back, even when clicking faster than the animations |
+| `ui_e2e.py` (31, run locally) | the app window in a real Chrome: every sidebar filter and the search box show the right downloads, and switching back to **All downloads** always brings every row back, even when clicking faster than the animations; **the update popup** against a fake GitHub release: release notes, *Later* (also after reopening the window), Arabic layout, *Update now* installing, restarting by itself and coming back on the new version with the downloads list intact; the *Restart to finish updating* popup after video support updated itself |
 | `extension_e2e.py` (13, run locally) | the real extension in Chrome: pairing via the popup, catching a click on a download link, cookies, right-click menu, video pages, falling back to the browser when FastGrab is closed, Arabic/Hebrew popup |
 | `test_app` video tests (3) | video info lookup, quality choice, pause/resume of a video, automatic web-page → video fallback, cancel removes temp files (uses yt-dlp's generic extractor on a local page) |
 | `test_tray` (13) | closing the window: keeps downloading and stays in the tray (or, without a tray, quits once the queue is done), the old quit-on-close setting (and the download continuing on the next start), one window at a time, starting FastGrab again shows the running copy, Pause all / Resume all; on Windows the real tray icon driven by Windows messages (click, menu commands, notification, Explorer restart), keep-awake and Quit from the tray |
@@ -220,10 +221,6 @@ Tests run on Linux, Windows and macOS through GitHub Actions.
 - [ ] Optional checksum verification (`--sha256`)
 - [x] Desktop app
 - [x] System tray icon and notifications
-
-## Inspiration
-
-The engine design (probe-as-first-stream, midpoint work stealing, `snapshot → fsync → persist` checkpoints) is inspired by the architecture of [Prism Download Manager](https://github.com/FortoGraphy/prism-download-manager), a full-featured download manager written in Rust. fastgrab is an independent, from-scratch Python implementation of those ideas.
 
 ## License
 
