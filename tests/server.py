@@ -33,6 +33,12 @@ class Handler(BaseHTTPRequestHandler):
     def log_message(self, *a):
         pass
 
+    def handle(self):
+        try:
+            super().handle()
+        except ConnectionError:      # client closed the connection on purpose
+            pass
+
     def do_GET(self):
         if self.path.startswith("/watch"):           # a web page with a video on it
             page = (b"<html><head><title>Test Clip</title></head><body>"

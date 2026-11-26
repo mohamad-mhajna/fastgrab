@@ -21,6 +21,8 @@ OPENER = urllib.request.build_opener(urllib.request.ProxyHandler({}))
 
 
 class AppBase(unittest.TestCase):
+    RATE_KB = 1024          # per-connection speed of the test server
+
     @classmethod
     def setUpClass(cls):
         cls.tmp = tempfile.mkdtemp()
@@ -52,7 +54,7 @@ class AppBase(unittest.TestCase):
         cls.token = r["token"]
         cls.downloads = os.path.join(cls.tmp, "Downloads")
         os.makedirs(cls.downloads, exist_ok=True)
-        cls.srv = Server(size_mb=12, rate_kb=1024)
+        cls.srv = Server(size_mb=12, rate_kb=cls.RATE_KB)
 
     @classmethod
     def tearDownClass(cls):
@@ -91,12 +93,16 @@ class AppBase(unittest.TestCase):
 
 
 class AppTest(AppBase):
+    RATE_KB = 300           # slow enough that the download can't finish before we look
+
     def test_1_download_pause_resume(self):
         id = self.call("/api/add", {"url": self.srv.url(), "dir": self.downloads, "connections": 8})["ids"][0]
         it = self.wait_status(id, "downloading")
-        time.sleep(1.5)
-        it = self.item(id)
-        self.assertGreaterEqual(len(it["segments"]), 4, "segments should be visible to the UI")
+        end = time.time() + 10
+        while time.time() < end and len(it["segments"]) < 4:
+            time.sleep(0.2)
+            it = self.item(id)
+        self.assertGreaterEqual(len(it["segments"]), 4, f"segments should be visible to the UI: {it}")
         self.call("/api/action", {"id": id, "action": "pause"})
         it = self.wait_status(id, "paused")
         self.assertTrue(0 < it["downloaded"] < it["size"])
