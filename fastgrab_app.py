@@ -11,7 +11,9 @@ How it works (same architecture as Prism, but zero dependencies):
   * the API is protected by a random per-run token and a Host check, so websites
     you visit can't control your downloads
   * the browser extension talks to /ext/* with its own pairing key
-  * downloads that were running when you closed the window resume on next start
+  * closing the window keeps FastGrab running in the system tray (Windows), so
+    downloads and the schedule carry on; downloads that were running when you
+    quit resume on next start
 """
 import ctypes
 import json
@@ -39,6 +41,8 @@ LANGS = ("en", "ar", "he")
 WHEN_DONE = ("none", "quit", "sleep", "shutdown")
 POWER_COUNTDOWN = int(os.environ.get("FASTGRAB_POWER_COUNTDOWN", 60))  # seconds to cancel
 NO_WINDOW = 0x08000000 if os.name == "nt" else 0
+WINDOW_GRACE = float(os.environ.get("FASTGRAB_WINDOW_GRACE", 30))  # window gone this long: closed for good
+WINDOW_AWAY = min(5.0, WINDOW_GRACE)    # no poll for this long: nobody is looking (notify instead)
 
 
 def resource_dir():
@@ -173,6 +177,9 @@ DEFAULT_SETTINGS = {
     "when_done": "none",
     "auto_update_video": True, "check_app_updates": True, "last_update_check": 0,
     "ext_key": None,
+    "close_to_tray": True,      # closing the window keeps downloads going (tray icon on Windows)
+    "keep_awake": True,         # stop Windows sleeping while something is downloading
+    "tray_hint_shown": False,
 }
 
 
@@ -256,7 +263,7 @@ class Manager:
             s["when_done"] = body["when_done"]
             if body["when_done"] == "none":
                 self.cancel_power()
-        for k in ("auto_update_video", "check_app_updates"):
+        for k in ("auto_update_video", "check_app_updates", "close_to_tray", "keep_awake"):
             if k in body:
                 s[k] = bool(body[k])
         if body.get("new_ext_key"):
@@ -467,6 +474,59 @@ class Manager:
                 del self.items[id]
         self.save()
 
+    def pause_everything(self):
+        """Pause every running or waiting download (tray menu "Pause all")."""
+        for it in list(self.items.values()):
+            if it.dl is not None or it.status == "queued":
+                try:
+                    self.pause(it.id, wait=False)
+                except KeyError:              # removed meanwhile
+                    pass
+
+    def resume_everything(self):
+        for it in list(self.items.values()):
+            if it.status == "paused":
+                try:
+                    self.resume(it.id)
+                except KeyError:
+                    pass
+
+    def counts(self):
+        """(downloading, waiting, paused, total speed in bytes/s) for the tray."""
+        down = wait = paused = 0
+        speed = 0.0
+        with self.lock:
+            items = list(self.items.values())
+        for it in items:
+            dl = it.dl
+            if dl is not None:
+                down += 1
+                try:
+                    speed += dl.snapshot().get("speed") or 0
+                except Exception:
+                    pass
+            elif it.status == "queued":
+                wait += 1
+            elif it.status == "paused":
+                paused += 1
+        return down, wait, paused, speed
+
+    def busy(self):
+        """Anything still to do (so a window-less app without a tray icon stays)."""
+        with self.lock:
+            return bool(self.power["action"]) or any(
+                i.dl is not None or i.status in ("downloading", "connecting", "queued")
+                for i in self.items.values())
+
+    def stop_for_exit(self):
+        """Quitting or restarting: pause what runs, and remember to continue it
+        when FastGrab starts again."""
+        for it in list(self.items.values()):
+            if it.dl is not None and not it.dl.stop.is_set():
+                it.resume_on_start = True
+        self.pause_all()
+        self.save()
+
     def pause_all(self):
         for it in list(self.items.values()):
             if it.dl is not None:
@@ -601,6 +661,10 @@ def find_app_browser():
 
 
 def open_window(url):
+    if os.environ.get("FASTGRAB_NO_BROWSER"):        # tests: record it instead
+        with open(os.path.join(data_dir(), "opened-windows.log"), "a") as f:
+            f.write(url + "\n")
+        return
     exe = find_app_browser()
     if exe:
         profile = os.path.join(data_dir(), "window-profile")
@@ -636,16 +700,404 @@ def extension_dir():
     return dst
 
 
+# ----------------------------------------------------------- tray icon (Win) --
+# Standard library only: talks to Windows directly through ctypes, like any native
+# tray app. On other systems there is no icon; the app keeps running in the
+# background until its queue is done.
+# menu command ids
+CMD_OPEN, CMD_PAUSE_ALL, CMD_RESUME_ALL, CMD_QUIT = 1001, 1002, 1003, 1004
+
+if os.name == "nt":
+    from ctypes import wintypes
+
+    user32 = ctypes.WinDLL("user32", use_last_error=True)
+    shell32 = ctypes.WinDLL("shell32", use_last_error=True)
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+
+    LRESULT = ctypes.c_ssize_t
+    WNDPROC = ctypes.WINFUNCTYPE(LRESULT, wintypes.HWND, wintypes.UINT,
+                                 wintypes.WPARAM, wintypes.LPARAM)
+
+    WM_DESTROY, WM_CLOSE, WM_COMMAND, WM_NULL = 0x0002, 0x0010, 0x0111, 0x0000
+    WM_USER, WM_APP = 0x0400, 0x8000
+    WM_LBUTTONUP, WM_LBUTTONDBLCLK, WM_RBUTTONUP, WM_CONTEXTMENU = 0x0202, 0x0203, 0x0205, 0x007B
+    WM_TRAY = WM_APP + 1               # our icon's mouse messages
+    WM_TRAY_WAKE = WM_APP + 2          # "do the queued work" (sent from other threads)
+    NIN_BALLOONUSERCLICK = WM_USER + 5
+    NIM_ADD, NIM_MODIFY, NIM_DELETE = 0, 1, 2
+    NIF_MESSAGE, NIF_ICON, NIF_TIP, NIF_INFO = 0x1, 0x2, 0x4, 0x10
+    NIIF_INFO, NIIF_NOSOUND = 0x1, 0x10
+    MF_STRING, MF_SEPARATOR, MF_GRAYED = 0x0, 0x800, 0x1
+    TPM_RIGHTBUTTON, TPM_RETURNCMD, TPM_NONOTIFY, TPM_LAYOUTRTL = 0x2, 0x100, 0x80, 0x8000
+    IMAGE_ICON, LR_LOADFROMFILE, LR_DEFAULTSIZE = 1, 0x10, 0x40
+    IDI_APPLICATION = 32512
+    SM_CXSMICON, SM_CYSMICON = 49, 50
+
+    class GUID(ctypes.Structure):
+        _fields_ = [("Data1", wintypes.DWORD), ("Data2", wintypes.WORD),
+                    ("Data3", wintypes.WORD), ("Data4", ctypes.c_ubyte * 8)]
+
+    class NOTIFYICONDATAW(ctypes.Structure):
+        _fields_ = [("cbSize", wintypes.DWORD), ("hWnd", wintypes.HWND),
+                    ("uID", wintypes.UINT), ("uFlags", wintypes.UINT),
+                    ("uCallbackMessage", wintypes.UINT), ("hIcon", wintypes.HICON),
+                    ("szTip", wintypes.WCHAR * 128), ("dwState", wintypes.DWORD),
+                    ("dwStateMask", wintypes.DWORD), ("szInfo", wintypes.WCHAR * 256),
+                    ("uVersion", wintypes.UINT), ("szInfoTitle", wintypes.WCHAR * 64),
+                    ("dwInfoFlags", wintypes.DWORD), ("guidItem", GUID),
+                    ("hBalloonIcon", wintypes.HICON)]
+
+    class WNDCLASSW(ctypes.Structure):
+        _fields_ = [("style", wintypes.UINT), ("lpfnWndProc", WNDPROC),
+                    ("cbClsExtra", ctypes.c_int), ("cbWndExtra", ctypes.c_int),
+                    ("hInstance", wintypes.HINSTANCE), ("hIcon", wintypes.HICON),
+                    ("hCursor", wintypes.HANDLE), ("hbrBackground", wintypes.HBRUSH),
+                    ("lpszMenuName", wintypes.LPCWSTR), ("lpszClassName", wintypes.LPCWSTR)]
+
+    class POINT(ctypes.Structure):
+        _fields_ = [("x", wintypes.LONG), ("y", wintypes.LONG)]
+
+    class MSG(ctypes.Structure):
+        _fields_ = [("hwnd", wintypes.HWND), ("message", wintypes.UINT),
+                    ("wParam", wintypes.WPARAM), ("lParam", wintypes.LPARAM),
+                    ("time", wintypes.DWORD), ("pt", POINT), ("lPrivate", wintypes.DWORD)]
+
+    def _sig(fn, res, *args):
+        fn.restype, fn.argtypes = res, list(args)
+        return fn
+
+    _sig(user32.DefWindowProcW, LRESULT, wintypes.HWND, wintypes.UINT, wintypes.WPARAM, wintypes.LPARAM)
+    _sig(user32.RegisterClassW, wintypes.ATOM, ctypes.POINTER(WNDCLASSW))
+    _sig(user32.UnregisterClassW, wintypes.BOOL, wintypes.LPCWSTR, wintypes.HINSTANCE)
+    _sig(user32.CreateWindowExW, wintypes.HWND, wintypes.DWORD, wintypes.LPCWSTR, wintypes.LPCWSTR,
+         wintypes.DWORD, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int,
+         wintypes.HWND, wintypes.HMENU, wintypes.HINSTANCE, wintypes.LPVOID)
+    _sig(user32.DestroyWindow, wintypes.BOOL, wintypes.HWND)
+    _sig(user32.GetMessageW, wintypes.BOOL, ctypes.POINTER(MSG), wintypes.HWND, wintypes.UINT, wintypes.UINT)
+    _sig(user32.TranslateMessage, wintypes.BOOL, ctypes.POINTER(MSG))
+    _sig(user32.DispatchMessageW, LRESULT, ctypes.POINTER(MSG))
+    _sig(user32.PostMessageW, wintypes.BOOL, wintypes.HWND, wintypes.UINT, wintypes.WPARAM, wintypes.LPARAM)
+    _sig(user32.PostQuitMessage, None, ctypes.c_int)
+    _sig(user32.RegisterWindowMessageW, wintypes.UINT, wintypes.LPCWSTR)
+    _sig(user32.CreatePopupMenu, wintypes.HMENU)
+    _sig(user32.AppendMenuW, wintypes.BOOL, wintypes.HMENU, wintypes.UINT, ctypes.c_size_t, wintypes.LPCWSTR)
+    _sig(user32.SetMenuDefaultItem, wintypes.BOOL, wintypes.HMENU, wintypes.UINT, wintypes.UINT)
+    _sig(user32.TrackPopupMenu, wintypes.BOOL, wintypes.HMENU, wintypes.UINT, ctypes.c_int,
+         ctypes.c_int, ctypes.c_int, wintypes.HWND, wintypes.LPVOID)
+    _sig(user32.DestroyMenu, wintypes.BOOL, wintypes.HMENU)
+    _sig(user32.GetCursorPos, wintypes.BOOL, ctypes.POINTER(POINT))
+    _sig(user32.SetForegroundWindow, wintypes.BOOL, wintypes.HWND)
+    _sig(user32.LoadImageW, wintypes.HANDLE, wintypes.HINSTANCE, wintypes.LPCWSTR, wintypes.UINT,
+         ctypes.c_int, ctypes.c_int, wintypes.UINT)
+    _sig(user32.LoadIconW, wintypes.HICON, wintypes.HINSTANCE, wintypes.LPVOID)
+    _sig(user32.DestroyIcon, wintypes.BOOL, wintypes.HICON)
+    _sig(user32.GetSystemMetrics, ctypes.c_int, ctypes.c_int)
+    _sig(user32.FindWindowW, wintypes.HWND, wintypes.LPCWSTR, wintypes.LPCWSTR)
+    _sig(shell32.Shell_NotifyIconW, wintypes.BOOL, wintypes.DWORD, ctypes.POINTER(NOTIFYICONDATAW))
+    _sig(kernel32.GetModuleHandleW, wintypes.HMODULE, wintypes.LPCWSTR)
+
+
+class Tray:
+    # the icon in the Windows tray (next to the clock), via Shell_NotifyIconW
+    """The icon lives on its own thread with a Windows message loop. Every other
+    method may be called from any thread."""
+
+    def __init__(self, icon_path, on_open, on_pause_all, on_resume_all, on_quit, texts):
+        self.icon_path = icon_path
+        self.handlers = {CMD_OPEN: on_open, CMD_PAUSE_ALL: on_pause_all,
+                         CMD_RESUME_ALL: on_resume_all, CMD_QUIT: on_quit}
+        self.texts = texts            # () -> dict with labels, rtl, can_pause, can_resume
+        self.hwnd = None
+        self.shown = False            # the icon is in the tray right now
+        self.tip = "FastGrab"
+        self.thread = None
+        self.lock = threading.Lock()
+        self.ready = threading.Event()
+        self.last_error = None
+        self.menu_open = False
+
+    # -- public, any thread ---------------------------------------------------------
+    def start(self, timeout=10):
+        if not os.name == "nt":
+            return False
+        self.thread = threading.Thread(target=self._loop, name="tray", daemon=True)
+        self.thread.start()
+        self.ready.wait(timeout)
+        return self.shown
+
+    def update(self, tip):
+        tip = (tip or "FastGrab")[:127]
+        if tip == self.tip:
+            return
+        self.tip = tip
+        if self.shown:
+            with self.lock:
+                nid = self._nid(NIF_TIP)
+                nid.szTip = tip
+                shell32.Shell_NotifyIconW(NIM_MODIFY, ctypes.byref(nid))
+
+    def notify(self, title, message):
+        """A Windows notification from the tray icon. Clicking it opens FastGrab."""
+        if not self.shown:
+            return False
+        with self.lock:
+            nid = self._nid(NIF_INFO)
+            nid.szInfoTitle = (title or "")[:63]
+            nid.szInfo = (message or " ")[:255]
+            nid.dwInfoFlags = NIIF_INFO
+            return bool(shell32.Shell_NotifyIconW(NIM_MODIFY, ctypes.byref(nid)))
+
+    def stop(self):
+        """Remove the icon and end the message loop. Safe to call twice."""
+        if not os.name == "nt" or not self.hwnd:
+            return
+        self._remove_icon()
+        user32.PostMessageW(self.hwnd, WM_CLOSE, 0, 0)
+        if self.thread and self.thread is not threading.current_thread():
+            self.thread.join(5)
+
+    # -- message loop thread ----------------------------------------------------------
+    def _nid(self, flags):
+        nid = NOTIFYICONDATAW()
+        nid.cbSize = ctypes.sizeof(NOTIFYICONDATAW)
+        nid.hWnd = self.hwnd
+        nid.uID = 1
+        nid.uFlags = flags
+        return nid
+
+    def _add_icon(self):
+        with self.lock:
+            nid = self._nid(NIF_MESSAGE | NIF_ICON | NIF_TIP)
+            nid.uCallbackMessage = WM_TRAY
+            nid.hIcon = self.hicon
+            nid.szTip = self.tip
+            self.shown = bool(shell32.Shell_NotifyIconW(NIM_ADD, ctypes.byref(nid)))
+            if not self.shown:
+                self.last_error = ctypes.get_last_error()
+        return self.shown
+
+    def _remove_icon(self):
+        with self.lock:
+            if self.shown:
+                nid = self._nid(0)
+                shell32.Shell_NotifyIconW(NIM_DELETE, ctypes.byref(nid))
+                self.shown = False
+
+    def _loop(self):
+        try:
+            hinst = kernel32.GetModuleHandleW(None)
+            self.hicon = None
+            if self.icon_path and os.path.exists(self.icon_path):
+                # the small-icon size for this screen's scaling (16 px at 100%, 24 at 150%...)
+                cx, cy = user32.GetSystemMetrics(SM_CXSMICON), user32.GetSystemMetrics(SM_CYSMICON)
+                self.hicon = user32.LoadImageW(None, self.icon_path, IMAGE_ICON, cx, cy,
+                                               LR_LOADFROMFILE)
+            self.own_icon = bool(self.hicon)
+            if not self.hicon:
+                self.hicon = user32.LoadIconW(None, ctypes.c_void_p(IDI_APPLICATION))
+            # Explorer sends this when it restarts (e.g. after a crash): add the icon again
+            self.taskbar_created = user32.RegisterWindowMessageW("TaskbarCreated")
+            self._proc = WNDPROC(self._wndproc)      # keep a reference, or it gets freed
+            self.cls_name = f"FastGrabTray{os.getpid()}"
+            wc = WNDCLASSW()
+            wc.lpfnWndProc = self._proc
+            wc.hInstance = hinst
+            wc.lpszClassName = self.cls_name
+            if not user32.RegisterClassW(ctypes.byref(wc)):
+                raise OSError(ctypes.get_last_error(), "RegisterClassW failed")
+            # a hidden top-level window (not message-only, so it hears TaskbarCreated)
+            self.hwnd = user32.CreateWindowExW(0, self.cls_name, "FastGrab", 0, 0, 0, 0, 0,
+                                               None, None, hinst, None)
+            if not self.hwnd:
+                raise OSError(ctypes.get_last_error(), "CreateWindowExW failed")
+            self._add_icon()
+        except Exception as e:
+            self.last_error = repr(e)
+            self.ready.set()
+            return
+        self.ready.set()
+        msg = MSG()
+        while user32.GetMessageW(ctypes.byref(msg), None, 0, 0) > 0:
+            user32.TranslateMessage(ctypes.byref(msg))
+            user32.DispatchMessageW(ctypes.byref(msg))
+        if self.own_icon:
+            user32.DestroyIcon(self.hicon)
+        user32.UnregisterClassW(self.cls_name, hinst)
+        self.hwnd = None
+
+    def _wndproc(self, hwnd, msg, wparam, lparam):
+        try:
+            if msg == WM_TRAY:
+                event = lparam & 0xFFFF
+                if event in (WM_LBUTTONDBLCLK, WM_LBUTTONUP, NIN_BALLOONUSERCLICK):
+                    self._run(CMD_OPEN)
+                elif event in (WM_RBUTTONUP, WM_CONTEXTMENU):
+                    self._menu(hwnd)
+                return 0
+            if msg == WM_COMMAND:
+                self._run(wparam & 0xFFFF)
+                return 0
+            if msg == self.taskbar_created and self.taskbar_created:
+                # Explorer (re)started: put the icon back. Remove any leftover first,
+                # since adding an icon Windows still has would fail.
+                with self.lock:
+                    shell32.Shell_NotifyIconW(NIM_DELETE, ctypes.byref(self._nid(0)))
+                    self.shown = False
+                self._add_icon()
+                return 0
+            if msg == WM_CLOSE:
+                self._remove_icon()
+                user32.DestroyWindow(hwnd)
+                return 0
+            if msg == WM_DESTROY:
+                user32.PostQuitMessage(0)
+                return 0
+        except Exception as e:           # never let an exception cross into Windows
+            self.last_error = repr(e)
+            return 0
+        return user32.DefWindowProcW(hwnd, msg, wparam, lparam)
+
+    def _run(self, cmd):
+        fn = self.handlers.get(cmd)
+        if fn:
+            # off the message loop, so a slow action (Pause all) never freezes the icon
+            threading.Thread(target=fn, daemon=True).start()
+
+    def menu_items(self):
+        """(id, label, enabled) rows of the right-click menu; None is a separator."""
+        t = self.texts()
+        return [(CMD_OPEN, t["open"], True), None,
+                (CMD_PAUSE_ALL, t["pause_all"], t.get("can_pause", True)),
+                (CMD_RESUME_ALL, t["resume_all"], t.get("can_resume", True)), None,
+                (CMD_QUIT, t["quit"], True)]
+
+    def _menu(self, hwnd):
+        if self.menu_open:
+            return
+        self.menu_open = True
+        menu = user32.CreatePopupMenu()
+        try:
+            for row in self.menu_items():
+                if row is None:
+                    user32.AppendMenuW(menu, MF_SEPARATOR, 0, None)
+                else:
+                    cid, label, enabled = row
+                    user32.AppendMenuW(menu, MF_STRING | (0 if enabled else MF_GRAYED), cid, label)
+            user32.SetMenuDefaultItem(menu, CMD_OPEN, 0)
+            pt = POINT()
+            user32.GetCursorPos(ctypes.byref(pt))
+            # without this the menu doesn't close when you click somewhere else
+            user32.SetForegroundWindow(hwnd)
+            flags = TPM_RIGHTBUTTON | TPM_RETURNCMD | TPM_NONOTIFY
+            if self.texts().get("rtl"):
+                flags |= TPM_LAYOUTRTL
+            cmd = user32.TrackPopupMenu(menu, flags, pt.x, pt.y, 0, hwnd, None)
+            user32.PostMessageW(hwnd, WM_NULL, 0, 0)
+            if cmd:
+                self._run(cmd)
+        finally:
+            user32.DestroyMenu(menu)
+            self.menu_open = False
+
+
+# ---------------------------------------------------------------------- tray --
+
+TRAY_TEXT = {
+    "en": {"open": "Open FastGrab", "pause_all": "Pause all", "resume_all": "Resume all",
+           "quit": "Quit FastGrab", "downloading": "{n} downloading · {speed}/s",
+           "waiting": "{n} waiting", "paused": "{n} paused",
+           "hint_t": "FastGrab is still running",
+           "hint": "Downloads continue in the background. Click this icon to open FastGrab, right-click it to quit.",
+           "done": "Download complete", "failed": "Download failed"},
+    "ar": {"open": "فتح FastGrab", "pause_all": "إيقاف الكل مؤقتًا", "resume_all": "استئناف الكل",
+           "quit": "إنهاء FastGrab", "downloading": "{n} قيد التنزيل · {speed}/ث",
+           "waiting": "{n} بالانتظار", "paused": "{n} متوقف مؤقتًا",
+           "hint_t": "FastGrab ما زال يعمل",
+           "hint": "تستمر التنزيلات في الخلفية. انقر على هذه الأيقونة لفتح FastGrab، وانقر بزر الفأرة الأيمن للإنهاء.",
+           "done": "اكتمل التنزيل", "failed": "فشل التنزيل"},
+    "he": {"open": "פתח את FastGrab", "pause_all": "השהה הכל", "resume_all": "המשך הכל",
+           "quit": "צא מ-FastGrab", "downloading": "{n} בהורדה · {speed}/ש'",
+           "waiting": "{n} ממתינות", "paused": "{n} מושהות",
+           "hint_t": "FastGrab עדיין פועל",
+           "hint": "ההורדות ממשיכות ברקע. לחץ על הסמל כדי לפתוח את FastGrab, לחיצה ימנית כדי לצאת.",
+           "done": "ההורדה הושלמה", "failed": "ההורדה נכשלה"},
+}
+
+
+def fmt_size(n):
+    n = float(n or 0)
+    for unit in ("B", "KB", "MB", "GB"):
+        if n < 1024 or unit == "GB":
+            return f"{n:.0f} {unit}" if unit == "B" else f"{n:.1f} {unit}"
+        n /= 1024
+
+
+def tray_tip(lang, counts):
+    """Tooltip of the tray icon, e.g. "FastGrab - 2 downloading · 5.1 MB/s"."""
+    t = TRAY_TEXT.get(lang, TRAY_TEXT["en"])
+    down, wait, paused, speed = counts
+    parts = []
+    if down:
+        parts.append(t["downloading"].format(n=down, speed=fmt_size(speed)))
+    if wait:
+        parts.append(t["waiting"].format(n=wait))
+    if paused and not down:
+        parts.append(t["paused"].format(n=paused))
+    return (APP_NAME + " - " + " · ".join(parts)) if parts else APP_NAME
+
+
+def keep_awake(on):
+    """Ask Windows not to sleep while downloads run. The request belongs to the
+    calling thread, so always call this from the same long-lived thread."""
+    if os.name != "nt":
+        return False
+    ES_CONTINUOUS, ES_SYSTEM_REQUIRED = 0x80000000, 0x00000001
+    f = ctypes.windll.kernel32.SetThreadExecutionState
+    f.restype, f.argtypes = ctypes.c_uint32, [ctypes.c_uint32]
+    return bool(f(ES_CONTINUOUS | (ES_SYSTEM_REQUIRED if on else 0)))
+
+
+def no_power_throttling():
+    """Opt out of Windows "power throttling" (EcoQoS), which can slow down
+    background programs that have no window on screen."""
+    if os.name != "nt":
+        return False
+    try:
+        from ctypes import wintypes
+
+        class STATE(ctypes.Structure):
+            _fields_ = [("Version", wintypes.ULONG), ("ControlMask", wintypes.ULONG),
+                        ("StateMask", wintypes.ULONG)]
+        k = ctypes.windll.kernel32
+        k.GetCurrentProcess.restype = wintypes.HANDLE
+        k.SetProcessInformation.restype = wintypes.BOOL
+        k.SetProcessInformation.argtypes = [wintypes.HANDLE, ctypes.c_int, ctypes.c_void_p, wintypes.DWORD]
+        st = STATE(1, 0x1, 0)        # control EXECUTION_SPEED, state off = never throttle
+        return bool(k.SetProcessInformation(k.GetCurrentProcess(), 4,   # ProcessPowerThrottling
+                                            ctypes.byref(st), ctypes.sizeof(st)))
+    except Exception:
+        return False
+
+
 # ---------------------------------------------------------------------- http --
 
 class App:
-    def __init__(self, port=DEFAULT_PORT, token=None, watchdog=False):
+    def __init__(self, port=DEFAULT_PORT, token=None, watchdog=False, tray=False):
         self.token = token or secrets.token_urlsafe(24)
         self.manager = Manager(os.path.join(data_dir(), "downloads.json"))
         self.updater = fastgrab_update.Updater(fastgrab.__version__, app_dir())
         self.last_seen = None
         self.ext_seen = None
         self.use_watchdog = watchdog
+        self.want_tray = tray and os.name == "nt"
+        self.tray = None
+        self.clients = {}           # window id -> last poll (one per open FastGrab window)
+        self.replace = None         # windows to close once a newly opened one shows up
+        self.replaced = set()
+        self.clients_lock = threading.Lock()
+        self.last_show = 0
+        self.awake = False
+        self.hint_due = False
         with open(os.path.join(resource_dir(), "ui", "index.html"), encoding="utf-8") as f:
             self.page = f.read()
         app = self
@@ -700,7 +1152,13 @@ class App:
                     return self._send(403, {"error": "bad token"})
                 if u.path == "/api/state":
                     app.last_seen = time.time()
+                    close = app.seen_client(self.headers.get("X-Client"))
                     st = app.manager.state()
+                    st["close_window"] = close
+                    st["tray"] = bool(app.tray and app.tray.shown)
+                    st["windows"] = os.name == "nt"
+                    st["awake"] = app.awake
+                    st["window_count"] = app.window_count()
                     st["update"] = app.updater.snapshot()
                     st["frozen"] = bool(getattr(sys, "frozen", False))
                     st["port"] = app.port
@@ -785,6 +1243,18 @@ class App:
                     if p == "/api/open-extension-folder":
                         open_path(app.ext_dir)
                         return self._send(200, {"ok": True})
+                    if p == "/api/show-window":         # FastGrab was started again
+                        app.show_window()
+                        return self._send(200, {"ok": True})
+                    if p == "/api/tray":                # the tray menu's actions (and tests)
+                        act = body.get("action")
+                        if act == "pause-all":
+                            m.pause_everything()
+                        elif act == "resume-all":
+                            m.resume_everything()
+                        else:
+                            return self._send(400, {"error": "unknown action"})
+                        return self._send(200, {"ok": True})
                     if p == "/api/restart":
                         threading.Thread(target=app.restart, daemon=True).start()
                         return self._send(200, {"ok": True})
@@ -840,16 +1310,122 @@ class App:
                 time.sleep(0.25)
         return ThreadingHTTPServer(("127.0.0.1", 0), handler)
 
-    def watchdog(self, grace=30):
-        """Quit (after pausing downloads safely) once the window has been closed."""
+    # -- windows ---------------------------------------------------------------
+    def seen_client(self, cid):
+        """A window polled. Returns True if that window should close itself
+        because a newer one was opened (so you never end up with two)."""
+        now = time.time()
+        with self.clients_lock:
+            for k in [k for k, v in self.clients.items() if now - v > 120]:
+                del self.clients[k]
+                self.replaced.discard(k)
+            if not cid:
+                return False
+            cid = str(cid)[:64]
+            if cid not in self.clients and self.replace is not None and cid not in self.replace:
+                self.replaced |= self.replace          # the new window is up: close the old ones
+                self.replace = None
+            self.clients[cid] = now
+            return cid in self.replaced
+
+    def window_open(self):
+        now = time.time()
+        with self.clients_lock:
+            if any(now - v < WINDOW_AWAY for k, v in self.clients.items() if k not in self.replaced):
+                return True
+        return bool(self.last_seen) and now - self.last_seen < WINDOW_AWAY and not self.clients
+
+    def window_count(self):
+        now = time.time()
+        with self.clients_lock:
+            return sum(1 for k, v in self.clients.items() if now - v < WINDOW_AWAY and k not in self.replaced)
+
+    def show_window(self):
+        """Open the window (tray click, or FastGrab started again). An already open
+        window closes itself once the new one is up."""
+        now = time.time()
+        if now - self.last_show < 2:                 # a double click is one request
+            return
+        self.last_show = now
+        with self.clients_lock:
+            self.replace = {k for k, v in self.clients.items() if now - v < WINDOW_AWAY}
+        open_window(self.url)
+
+    # -- tray ------------------------------------------------------------------
+    def tray_texts(self):
+        lang = self.manager.settings.get("lang", "en")
+        down, wait, paused, _ = self.manager.counts()
+        return {**TRAY_TEXT.get(lang, TRAY_TEXT["en"]), "rtl": lang in ("ar", "he"),
+                "can_pause": bool(down or wait), "can_resume": bool(paused)}
+
+    def start_tray(self):
+        if not self.want_tray:
+            return False
+        self.tray = Tray(
+            next((p for p in (os.path.join(resource_dir(), "ui", "fastgrab.ico"),
+                              os.path.join(resource_dir(), "fastgrab.ico"),
+                              os.path.join(resource_dir(), "assets", "fastgrab.ico"))
+                  if os.path.exists(p)), None),
+            on_open=self.show_window,
+            on_pause_all=self.manager.pause_everything,
+            on_resume_all=self.manager.resume_everything,
+            on_quit=self.quit,
+            texts=self.tray_texts)
+        ok = self.tray.start()
+        if not ok and sys.stderr:
+            print(f"tray icon unavailable: {self.tray.last_error}", file=sys.stderr, flush=True)
+        return ok
+
+    def housekeeping(self):
+        """Every second, on one long-lived thread: tray tooltip, notifications,
+        keep-awake, and what to do once the window is closed."""
+        last = {}
         while True:
             time.sleep(1)
-            if self.last_seen and time.time() - self.last_seen > grace:
-                self.quit()
+            try:
+                m = self.manager
+                s = m.settings
+                counts = m.counts()
+                want_awake = bool(s.get("keep_awake", True) and counts[0])
+                if want_awake != self.awake:
+                    keep_awake(want_awake)
+                    self.awake = want_awake
+                looking = self.window_open()
+                tray = self.tray if (self.tray and self.tray.shown) else None
+                if tray:
+                    tray.update(tray_tip(s.get("lang", "en"), counts))
+                    t = TRAY_TEXT.get(s.get("lang"), TRAY_TEXT["en"])
+                    with m.lock:
+                        now = {i.id: (i.status if i.dl is None else "running", i)
+                               for i in m.items.values()}
+                    for id, (st, it) in now.items():
+                        before = last.get(id)
+                        if not looking and before and before != st and st in ("completed", "failed"):
+                            tray.notify(t["done"] if st == "completed" else t["failed"],
+                                        it.filename or guess_name(it.url))
+                    last = {k: v[0] for k, v in now.items()}
+                gone = self.last_seen and time.time() - self.last_seen > WINDOW_GRACE
+                if self.use_watchdog and self.last_seen and not looking:
+                    if not s.get("close_to_tray", True):
+                        if gone:
+                            self.quit()             # the old behaviour: closing the window quits
+                    elif tray:
+                        if not s.get("tray_hint_shown"):
+                            s["tray_hint_shown"] = True
+                            m.save()
+                            tray.notify(t["hint_t"], t["hint"])
+                    elif gone and not m.busy():
+                        self.quit()                 # no tray icon: stay only until the work is done
+            except Exception:
+                if sys.stderr:
+                    import traceback
+                    traceback.print_exc()
 
     def quit(self):
-        self.manager.pause_all()
-        self.manager.save()
+        if self.tray:
+            self.tray.stop()                # or a dead icon stays next to the clock
+        keep_awake(False)
+        self.manager.stop_for_exit()
         try:
             os.remove(os.path.join(data_dir(), "running.json"))
         except OSError:
@@ -860,10 +1436,11 @@ class App:
         """Start a fresh copy on the same port and token, so the open window just
         reconnects (used after an update)."""
         time.sleep(0.3)                     # let the HTTP reply go out
-        self.manager.pause_all()
-        self.manager.save()
+        self.manager.stop_for_exit()
         self.server.shutdown()
         self.server.server_close()
+        if self.tray:
+            self.tray.stop()
         if getattr(sys, "frozen", False):
             cmd = [sys.executable]
         else:
@@ -872,6 +1449,8 @@ class App:
         cmd += ["--restart", str(self.port), self.token]
         if not self.use_watchdog:
             cmd.append("--no-window")
+        elif self.last_seen and not self.window_open():
+            cmd.append("--hidden")          # updated while in the tray: stay there
         log = open(os.path.join(data_dir(), "restart.log"), "w")   # errors of the new copy, if any
         subprocess.Popen(cmd, cwd=app_dir(), close_fds=True, stdout=log, stderr=log,
                          creationflags=NO_WINDOW)
@@ -895,10 +1474,11 @@ class App:
         threading.Thread(target=self.server.serve_forever, daemon=True).start()
         self.manager.resume_interrupted()
         self.manager.schedule()
+        no_power_throttling()
+        self.start_tray()
         if window and reopen:
             open_window(self.url)
-        if self.use_watchdog:
-            threading.Thread(target=self.watchdog, daemon=True).start()
+        threading.Thread(target=self.housekeeping, name="housekeeping", daemon=True).start()
         if not os.environ.get("FASTGRAB_NO_AUTO_UPDATE"):
             threading.Timer(20, self.background_updates).start()
         if sys.stdout:                    # None in a windowed .exe
@@ -919,8 +1499,27 @@ class App:
                         import traceback
                         traceback.print_exc()
         except KeyboardInterrupt:
-            self.manager.pause_all()
-            self.manager.save()
+            if self.tray:
+                self.tray.stop()
+            self.manager.stop_for_exit()
+
+
+def show_existing():
+    """If FastGrab is already running (maybe only in the tray), ask it to show its
+    window and return True, instead of starting a second copy."""
+    try:
+        with open(os.path.join(data_dir(), "running.json")) as f:
+            r = json.load(f)
+        req = urllib.request.Request(f"http://127.0.0.1:{r['port']}/api/show-window", data=b"{}",
+                                     headers={"X-Token": r["token"], "Content-Type": "application/json"})
+        opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+        opener.open(req, timeout=2).read()
+        return True
+    except Exception:
+        url = already_running()             # an older FastGrab without /api/show-window
+        if url:
+            open_window(url)
+        return bool(url)
 
 
 def already_running():
@@ -940,18 +1539,24 @@ def already_running():
 def main():
     args = sys.argv[1:]
     window = "--no-window" not in args
+    # --tray / --watchdog: tray icon and close-the-window handling without opening
+    # a window (used by the tests); --hidden: start in the tray only
+    watchdog = window or "--watchdog" in args
+    tray = window or "--tray" in args
+    hidden = "--hidden" in args
     port = DEFAULT_PORT
     if "--port" in args:
         port = int(args[args.index("--port") + 1])
     if "--restart" in args:                       # started by App.restart()
         i = args.index("--restart")
-        App(int(args[i + 1]), token=args[i + 2], watchdog=window).serve(window, reopen=False)
+        app = App(int(args[i + 1]), token=args[i + 2], watchdog=watchdog, tray=tray)
+        if hidden:
+            app.last_seen = time.time() - WINDOW_GRACE - 1   # the window was already closed
+        app.serve(window, reopen=False)
         return
-    existing = already_running() if window else None
-    if existing:
-        open_window(existing)
-        return
-    App(port, watchdog=window).serve(window=window)
+    if window and (already_running() if hidden else show_existing()):
+        return                                    # FastGrab is already running
+    App(port, watchdog=watchdog, tray=tray).serve(window=window and not hidden)
 
 
 if __name__ == "__main__":

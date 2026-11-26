@@ -5,7 +5,7 @@
 ![deps](https://img.shields.io/badge/dependencies-none-brightgreen)
 ![license](https://img.shields.io/badge/license-MIT-green)
 
-**Up to 10× faster downloads.** A multi-connection download manager with a desktop app and a command-line tool, built with **only the Python standard library**. Optional **video mode** downloads from YouTube, TikTok, Instagram, X, Facebook, Reddit, Vimeo and 1,000+ other sites.
+**Up to 15× faster downloads.** A multi-connection download manager with a desktop app and a command-line tool, built with **only the Python standard library**. Optional **video mode** downloads from YouTube, TikTok, Instagram, X, Facebook, Reddit, Vimeo and 1,000+ other sites.
 
 ![FastGrab desktop app](assets/screenshot.png)
 
@@ -18,25 +18,27 @@ The **command-line tool** does the same in a terminal:
 ```
 $ python fastgrab.py https://example.com/big.iso -c 8
 File : big.iso
-Size : 30.0 MB
+Size : 200.0 MB
 Resumable: yes
-[##############################] 100.0%  30.0 MB/30.0 MB  14.7 MB/s  ETA 0:00  conns 8
+[##############################] 100.0%  200.0 MB/200.0 MB  37.6 MB/s  ETA 0:00  conns 8
 Done -> ./big.iso
+Time : 0:05 (5.4 s), average 36.9 MB/s
 ```
 
 ## Benchmark
 
-60 MB file from a test server that limits each connection to 2 MB/s (this kind of per-connection limit is common on real servers). Each setting was run twice, and both runs gave the same time:
+![Benchmark: the same 200 MB file downloads at 4.8 MB/s in a browser and up to 72.5 MB/s with FastGrab](assets/benchmark.svg)
 
-| Connections | Time | Speed | vs. 1 connection |
-|---|---|---|---|
-| 1 (like a normal browser download) | 30.5 s | 2.0 MB/s | 1× |
-| 8 (default) | 4.0 s | 15.1 MB/s | **7.6×** |
-| 16 (`-c 16`) | 2.4 s | 25.2 MB/s | **12.7×** |
+| | Connections | Time | Speed | vs. browser |
+|---|---|---|---|---|
+| Browser (normal download) | 1 | 41.7 s | 4.8 MB/s | 1× |
+| **FastGrab** (default) | 8 | 5.8 s | 34.7 MB/s | **7.2×** |
+| **FastGrab** | 16 | 3.5 s | 56.9 MB/s | **11.9×** |
+| **FastGrab** | 32 | 2.8 s | 72.5 MB/s | **15.1×** |
 
-Every downloaded file had the same SHA-256 as the original.
+200 MB file from a test server that limits each connection to 5 MB/s (many real servers limit each connection like this). Each row is the average of 2 runs, and every downloaded file had the same SHA-256 as the original. With no limit on the server, the engine reaches **380 MB/s (about 3 Gbit/s)**, so it won't be what slows you down. The test machine had only 2 CPU cores, running the server and FastGrab at the same time.
 
-> How much faster you get depends on the server and your connection. If a single connection already uses all of your bandwidth, extra connections can't add more speed.
+> How much faster you get depends on the server and your connection. If a single connection already uses all of your bandwidth, extra connections can't add more speed. Internet plans are sold in megabits: a 100 Mbit/s plan tops out around 12 MB/s, 1 Gbit/s fiber around 120 MB/s.
 
 ## Features
 
@@ -46,7 +48,15 @@ Every downloaded file had the same SHA-256 as the original.
 - Pause, resume, retry, cancel, open file, show in folder
 - Up to 3 downloads at once, with the rest queued
 - Paste a link anywhere with Ctrl+V, or drag a link onto the window
-- Downloads that were running when you closed the window resume on the next start
+- Only one window: opening FastGrab again brings up a fresh window and the old one closes itself
+
+**Runs in the background** (system tray)
+- Closing the window doesn't stop anything: FastGrab stays in the tray next to the clock, and downloads and the schedule carry on. Measured: same speed with the window open or closed (21.9 vs 21.7 MB/s, within noise)
+- Click the icon to open the window; right-click for **Pause all**, **Resume all** and **Quit**
+- The tooltip shows what's downloading and how fast; a Windows notification tells you when a download finishes or fails while the window is closed
+- Keeps the PC awake while downloading, and opts out of Windows' background "power throttling"
+- Quit mid-download and the downloads continue on the next start
+- Prefer the old way? Turn off **Keep downloading when I close the window** in Settings
 
 **Browser extension** (Chrome and Edge)
 - Downloads you start in the browser go to FastGrab automatically (programs, archives, videos, music, PDFs)
@@ -190,8 +200,10 @@ The suite starts a local HTTP server (`tests/server.py`) that can throttle each 
 | `test_features` (10) | scheduler window math, waiting / starting / pausing at the window edges, "Start now", when-done countdown + cancel + run-once, settings and languages, extension pairing key, cookies passed to a login-only file, video links opening the picker |
 | `test_update` (4) | yt-dlp update from a fake PyPI: checksum verified, loaded from the addons folder ahead of the installed copy, a wrong checksum rejected, a broken build falling back; **a full self-update**: FastGrab finds v9.9.9, installs it, restarts itself and the same session keeps working |
 | `extension.test.mjs` (6) | the extension's rules for which downloads to catch |
+| `ui_e2e.py` (12, run locally) | the app window in a real Chrome: every sidebar filter and the search box show the right downloads, and switching back to **All downloads** always brings every row back, even when clicking faster than the animations |
 | `extension_e2e.py` (13, run locally) | the real extension in Chrome: pairing via the popup, catching a click on a download link, cookies, right-click menu, video pages, falling back to the browser when FastGrab is closed, Arabic/Hebrew popup |
 | `test_app` video tests (3) | video info lookup, quality choice, pause/resume of a video, automatic web-page → video fallback, cancel removes temp files (uses yt-dlp's generic extractor on a local page) |
+| `test_tray` (13) | closing the window: keeps downloading and stays in the tray (or, without a tray, quits once the queue is done), the old quit-on-close setting (and the download continuing on the next start), one window at a time, starting FastGrab again shows the running copy, Pause all / Resume all; on Windows the real tray icon driven by Windows messages (click, menu commands, notification, Explorer restart), keep-awake and Quit from the tray |
 | `test_app` (5 tests) | app API: live segments, pause/resume, unique names for same-name downloads, cancel deletes only its own partial files, rejects non-http links, 403 without token or with a foreign `Host` |
 
 The release pipeline runs `test_app` against the built **`FastGrab.exe`** itself before publishing it.
@@ -207,7 +219,7 @@ Tests run on Linux, Windows and macOS through GitHub Actions.
 - [ ] Speed limiter (token bucket)
 - [ ] Optional checksum verification (`--sha256`)
 - [x] Desktop app
-- [ ] System tray icon and notifications
+- [x] System tray icon and notifications
 
 ## Inspiration
 

@@ -407,6 +407,8 @@ input[type=time].inp{color-scheme:dark;width:116px}
         <select class="inp" id="s-conns"><option>1</option><option>2</option><option>4</option><option>8</option><option>12</option><option>16</option><option>24</option><option>32</option></select></div>
       <div class="srow"><div class="lab"><b data-t="max_active"></b><span data-t="max_active_d"></span></div>
         <select class="inp" id="s-max"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>8</option><option>10</option></select></div>
+      <div class="srow"><div class="lab"><b data-t="bg_run"></b><span id="s-bgrun-d"></span></div><button class="tog" id="s-bgrun"></button></div>
+      <div class="srow"><div class="lab"><b data-t="awake"></b><span data-t="awake_d"></span></div><button class="tog" id="s-awake"></button></div>
     </div>
     <div class="spane" data-p="schedule">
       <div class="srow"><div class="lab"><b data-t="sched_on"></b><span data-t="sched_on_d"></span></div><button class="tog" id="s-sched"></button></div>
@@ -469,7 +471,7 @@ v_need:"Downloading from YouTube, TikTok, Instagram, X and 1,000+ other sites ne
 err_webpage:"This link opens a web page, not a file. Install video support to download videos from websites.",
 s_general:"General",s_schedule:"Schedule",s_updates:"Updates",s_browser:"Browser extension",
 language:"Language",language_d:"The language of FastGrab's window",save_to:"Save downloads to",save_to_d:"New downloads go into this folder",change:"Change",
-def_conns:"Connections per download",def_conns_d:"8 suits most servers; 16 for big files from fast servers",max_active:"Downloads at the same time",max_active_d:"The rest wait in the queue",
+def_conns:"Connections per download",def_conns_d:"8 suits most servers; 16 for big files from fast servers",max_active:"Downloads at the same time",max_active_d:"The rest wait in the queue",bg_run:"Keep downloading when I close the window",bg_run_tray:"FastGrab stays in the tray next to the clock. Click the icon to open it, right-click it to quit",bg_run_notray:"FastGrab keeps running until the queue is done, then closes",awake:"Keep the PC awake while downloading",awake_d:"Stops Windows from going to sleep in the middle of a download",
 sched_on:"Download only at certain times",sched_on_d:"Queued downloads wait for the time window; running ones pause when it ends",sched_from:"Time window",sched_from_d:"For example 02:00–08:00 for night-time internet",
 sched_open:"Inside the window now: downloads run",sched_closed:"Outside the window: new downloads wait until {t}",sched_off:"Off: downloads start right away",
 when_done:"When all downloads finish",when_done_d:"Runs once, then switches back to \"Do nothing\". You get 60 seconds to cancel.",
@@ -509,7 +511,7 @@ v_need:"التنزيل من YouTube وTikTok وInstagram وX وأكثر من 100
 err_webpage:"هذا الرابط يفتح صفحة ويب وليس ملفًا. ثبّت دعم الفيديو لتنزيل مقاطع الفيديو من المواقع.",
 s_general:"عام",s_schedule:"الجدولة",s_updates:"التحديثات",s_browser:"إضافة المتصفح",
 language:"اللغة",language_d:"لغة نافذة FastGrab",save_to:"حفظ التنزيلات في",save_to_d:"تذهب التنزيلات الجديدة إلى هذا المجلد",change:"تغيير",
-def_conns:"الاتصالات لكل تنزيل",def_conns_d:"8 مناسب لمعظم الخوادم؛ 16 للملفات الكبيرة من الخوادم السريعة",max_active:"عدد التنزيلات في نفس الوقت",max_active_d:"البقية تنتظر في قائمة الانتظار",
+def_conns:"الاتصالات لكل تنزيل",def_conns_d:"8 مناسب لمعظم الخوادم؛ 16 للملفات الكبيرة من الخوادم السريعة",max_active:"عدد التنزيلات في نفس الوقت",max_active_d:"البقية تنتظر في قائمة الانتظار",bg_run:"تابع التنزيل عند إغلاق النافذة",bg_run_tray:"يبقى FastGrab في شريط المهام بجانب الساعة. انقر على الأيقونة لفتحه، وانقر بزر الفأرة الأيمن لإغلاقه",bg_run_notray:"يبقى FastGrab يعمل حتى تنتهي قائمة الانتظار، ثم يُغلق",awake:"إبقاء الكمبيوتر مستيقظًا أثناء التنزيل",awake_d:"يمنع Windows من الدخول في وضع السكون في منتصف التنزيل",
 sched_on:"التنزيل في أوقات محددة فقط",sched_on_d:"تنتظر التنزيلات المنتظرة الفترة الزمنية؛ والجارية تتوقف عند انتهائها",sched_from:"الفترة الزمنية",sched_from_d:"مثلًا 02:00–08:00 لإنترنت الليل",
 sched_open:"داخل الفترة الآن: التنزيلات تعمل",sched_closed:"خارج الفترة: التنزيلات الجديدة تنتظر حتى {t}",sched_off:"متوقف: تبدأ التنزيلات فورًا",
 when_done:"عند انتهاء كل التنزيلات",when_done_d:"يُنفَّذ مرة واحدة ثم يعود إلى \"لا تفعل شيئًا\". لديك 60 ثانية للإلغاء.",
@@ -549,7 +551,7 @@ v_need:"הורדה מ-YouTube,‏ TikTok,‏ Instagram,‏ X ועוד יותר �
 err_webpage:"הקישור הזה פותח דף אינטרנט ולא קובץ. התקן תמיכה בווידאו כדי להוריד סרטונים מאתרים.",
 s_general:"כללי",s_schedule:"תזמון",s_updates:"עדכונים",s_browser:"תוסף לדפדפן",
 language:"שפה",language_d:"השפה של חלון FastGrab",save_to:"שמור הורדות ב",save_to_d:"הורדות חדשות נשמרות בתיקייה הזו",change:"שנה",
-def_conns:"חיבורים לכל הורדה",def_conns_d:"8 מתאים לרוב השרתים; 16 לקבצים גדולים משרתים מהירים",max_active:"הורדות בו-זמנית",max_active_d:"השאר ממתינות בתור",
+def_conns:"חיבורים לכל הורדה",def_conns_d:"8 מתאים לרוב השרתים; 16 לקבצים גדולים משרתים מהירים",max_active:"הורדות בו-זמנית",max_active_d:"השאר ממתינות בתור",bg_run:"המשך להוריד כשאני סוגר את החלון",bg_run_tray:"FastGrab נשאר במגש ליד השעון. לחץ על הסמל כדי לפתוח, לחיצה ימנית כדי לצאת",bg_run_notray:"FastGrab ממשיך לפעול עד שהתור מסתיים, ואז נסגר",awake:"השאר את המחשב ער בזמן הורדה",awake_d:"מונע מ-Windows להיכנס למצב שינה באמצע הורדה",
 sched_on:"הורד רק בשעות מסוימות",sched_on_d:"הורדות בתור ממתינות לחלון הזמן; הורדות פעילות מושהות כשהוא נגמר",sched_from:"חלון זמן",sched_from_d:"למשל 02:00–08:00 לאינטרנט לילי",
 sched_open:"בתוך החלון עכשיו: ההורדות רצות",sched_closed:"מחוץ לחלון: הורדות חדשות ממתינות עד {t}",sched_off:"כבוי: הורדות מתחילות מיד",
 when_done:"כשכל ההורדות מסתיימות",when_done_d:"פועל פעם אחת ואז חוזר ל\"אל תעשה כלום\". יש לך 60 שניות לבטל.",
@@ -604,8 +606,9 @@ let filter = "all", selected = null, query = "";
 const hist = {}, seenStatus = {}, rowEls = new Map();
 let seenEvents = null, firstVersion = null, restarting = false;
 
+const CLIENT = Math.random().toString(36).slice(2);   // this window, so a newer one can replace it
 function api(path, body){
-  const opt = {headers:{"X-Token":TOKEN}};
+  const opt = {headers:{"X-Token":TOKEN,"X-Client":CLIENT}};
   if (body !== undefined){ opt.method="POST"; opt.headers["Content-Type"]="application/json"; opt.body=JSON.stringify(body); }
   return fetch(path, opt).then(async r => { const j = await r.json().catch(()=>({})); if(!r.ok) throw new Error(j.error||r.statusText); return j; });
 }
@@ -655,6 +658,8 @@ function actionsFor(it){
 /* ================================================================ rendering */
 function renderRow(it){
   let el = rowEls.get(it.id);
+  // a row that was filtered out is still fading away: never reuse it, build a fresh one
+  if (el && el.classList.contains("leaving")){ rowEls.delete(it.id); el = null; }
   const k = cat(it), tp = TYPES[k] || {color:"#9097a8",label:(ext(it.filename)||"FILE").slice(0,4).toUpperCase()};
   const pct = it.size ? Math.min(100, it.downloaded/it.size*100) : (it.status==="completed"?100:0);
   const live = it.status==="downloading", sk = statusKey(it);
@@ -847,6 +852,7 @@ async function poll(){
   failures = 0; $("#offline").classList.remove("on");
   if (firstVersion===null) firstVersion = s.version;
   else if (s.version !== firstVersion){ location.reload(); return; } // updated: load the new interface
+  if (s.close_window){ window.close(); }                         // a newer FastGrab window was opened
   state = s;
   if (state.settings.lang !== LANG) applyLang(state.settings.lang);
   $("#ver").textContent = "v"+state.version;
@@ -1040,6 +1046,9 @@ function renderSettings(){
   const us = $("#u-status");
   us.className = "statusline " + (u.error ? "warn" : u.last_check ? "ok" : "");
   us.innerHTML = `<i></i>${esc(u.error ? t("upd_err",{e:u.error}) : u.last_check ? (a.available ? t("upd_avail",{v:a.latest}) : t("up_to_date")) + " · " + t("last_checked",{t:ago(u.last_check)}) : t("never_checked"))}`;
+  setTog($("#s-bgrun"), s.close_to_tray); setTog($("#s-awake"), s.keep_awake);
+  $("#s-awake").closest(".srow").style.display = state.windows ? "" : "none";
+  $("#s-bgrun-d").textContent = t(state.tray ? "bg_run_tray" : "bg_run_notray");
   setTog($("#s-autovideo"), s.auto_update_video); setTog($("#s-autoapp"), s.check_app_updates);
   // browser extension
   $("#e-key").textContent = s.ext_key || "";
@@ -1061,6 +1070,8 @@ $("#s-sched").onclick = () => saveSetting({schedule:{enabled:!state.settings.sch
 $("#s-start").addEventListener("change", e => saveSetting({schedule:{start:e.target.value}}));
 $("#s-stop").addEventListener("change", e => saveSetting({schedule:{stop:e.target.value}}));
 $("#s-done").onchange = e => saveSetting({when_done:e.target.value});
+$("#s-bgrun").onclick = () => saveSetting({close_to_tray:!state.settings.close_to_tray});
+$("#s-awake").onclick = () => saveSetting({keep_awake:!state.settings.keep_awake});
 $("#s-autovideo").onclick = () => saveSetting({auto_update_video:!state.settings.auto_update_video});
 $("#s-autoapp").onclick = () => saveSetting({check_app_updates:!state.settings.check_app_updates});
 $("#u-check").onclick = () => api("/api/update/check",{}).then(poll);
