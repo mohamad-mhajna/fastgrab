@@ -864,8 +864,8 @@ class App:
         cmd += ["--restart", str(self.port), self.token]
         if not self.use_watchdog:
             cmd.append("--no-window")
-        subprocess.Popen(cmd, cwd=app_dir(), close_fds=True,
-                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        log = open(os.path.join(data_dir(), "restart.log"), "w")   # errors of the new copy, if any
+        subprocess.Popen(cmd, cwd=app_dir(), close_fds=True, stdout=log, stderr=log,
                          creationflags=NO_WINDOW)
         os._exit(0)
 

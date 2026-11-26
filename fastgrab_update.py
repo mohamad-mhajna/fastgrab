@@ -267,6 +267,17 @@ def install_app_update(release, app_dir):
             with open(tmp, "wb") as f:
                 f.write(zf.read(rel))
             os.replace(tmp, target)
+        # Python decides whether a cached .pyc is stale by the source's size and
+        # whole-second timestamp; a same-size file written in the same second
+        # would keep running the old code, so drop the cache for our modules.
+        cache = os.path.join(app_dir, "__pycache__")
+        if os.path.isdir(cache):
+            for name in os.listdir(cache):
+                if name.split(".")[0] in ("fastgrab", "fastgrab_app", "fastgrab_video", "fastgrab_update"):
+                    try:
+                        os.remove(os.path.join(cache, name))
+                    except OSError:
+                        pass
 
 
 def cleanup_old_exe():

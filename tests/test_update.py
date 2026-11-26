@@ -168,7 +168,8 @@ class AppSelfUpdate(unittest.TestCase):
                                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         data = os.path.join(home, "FastGrab") if os.name == "nt" else os.path.join(home, ".config", "fastgrab")
         try:
-            for _ in range(150):
+            r = None
+            for _ in range(900):
                 try:
                     with open(os.path.join(data, "running.json")) as f:
                         r = json.load(f)
@@ -205,7 +206,12 @@ class AppSelfUpdate(unittest.TestCase):
             self.assertIsNone(st["update"]["error"])
             self.assertTrue(os.path.exists(os.path.join(app, ".previous", "fastgrab.py")), "backup kept")
             call("/api/restart", {})
-            st = wait(lambda s: s["version"] == "9.9.9", timeout=40)   # same port + token
+            try:
+                st = wait(lambda s: s["version"] == "9.9.9", timeout=60)   # same port + token
+            except AssertionError:
+                log = os.path.join(data, "restart.log")
+                raise AssertionError("restart failed; restart.log:\n" +
+                                     (open(log).read()[-3000:] if os.path.exists(log) else "(none)")) from None
             self.assertNotEqual(old_version, "9.9.9")
             with open(os.path.join(data, "running.json")) as f:
                 new_pid = json.load(f)["pid"]

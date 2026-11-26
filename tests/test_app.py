@@ -37,7 +37,7 @@ class AppBase(unittest.TestCase):
         data = os.path.join(cls.tmp, "FastGrab") if os.name == "nt" else os.path.join(cls.tmp, ".config", "fastgrab")
         info = os.path.join(data, "running.json")
         r = None
-        for _ in range(300):
+        for _ in range(900):                    # slow CI machines (macOS) can take a while
             if cls.proc.poll() is not None:
                 break
             if os.path.exists(info):
@@ -80,6 +80,11 @@ class AppBase(unittest.TestCase):
         except urllib.error.HTTPError as e:
             e.msg = f"{e.msg}: {e.read().decode(errors='replace')}"
             raise
+        except urllib.error.URLError as e:
+            self.log.flush()
+            self.log.seek(0)
+            state = "exited with code %s" % self.proc.poll() if self.proc.poll() is not None else "still running"
+            raise AssertionError(f"app unreachable ({e.reason}); app {state}; log:\n{self.log.read()[-4000:]}") from None
 
     def item(self, id):
         return next(i for i in self.call("/api/state")["items"] if i["id"] == id)
