@@ -339,8 +339,11 @@ class Updater:
                 rel = latest_release()
                 self._release = rel
                 with self.lock:
+                    # a just-published release has no files for a few minutes while
+                    # GitHub builds them: don't offer it until it can be installed
+                    ready = "SHA256SUMS.txt" in rel["assets"]
                     self.state["app"].update(latest=rel["version"], url=rel["url"], notes=rel["notes"],
-                                             available=vtuple(rel["version"]) > vtuple(self.current))
+                                             available=ready and vtuple(rel["version"]) > vtuple(self.current))
             with self.lock:
                 self.state["last_check"] = time.time()
         return self._run("checking", work)

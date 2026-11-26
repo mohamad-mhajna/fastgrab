@@ -136,6 +136,23 @@ class VideoAddonUpdate(unittest.TestCase):
         self.assertEqual(out, "{}")
 
 
+class ReleaseNotReady(unittest.TestCase):
+    def test_release_without_files_is_not_offered(self):
+        """Right after publishing, GitHub is still building the files: no update yet."""
+        srv = FakeServer()
+        srv.routes["/gh/repos/mohamadar8162-design/fastgrab/releases/latest"] = {
+            "tag_name": "v9.9.9", "html_url": srv.base + "/release", "body": "notes", "assets": []}
+        env = dict(os.environ, FASTGRAB_GITHUB_API=srv.base + "/gh")
+        code = ("import fastgrab_update as u, time; up = u.Updater('1.0.0', '.'); up.check(video=False)\n"
+                "while up.snapshot()['busy']: time.sleep(0.05)\n"
+                "a = up.snapshot()['app']; print(a['latest'], a['available'])")
+        r = subprocess.run([sys.executable, "-c", code], env=env, cwd=ROOT, capture_output=True, text=True, timeout=60)
+        self.assertEqual(r.stdout.strip(), "9.9.9 False", r.stderr)
+        srv.release("9.9.9", {"fastgrab-source.zip": b"x"})          # files are up now
+        r = subprocess.run([sys.executable, "-c", code], env=env, cwd=ROOT, capture_output=True, text=True, timeout=60)
+        self.assertEqual(r.stdout.strip(), "9.9.9 True", r.stderr)
+
+
 class AppSelfUpdate(unittest.TestCase):
     """Copy FastGrab into a temp folder, run it, publish a fake v9.9.9 and let the
     app update and restart itself; the same token must keep working."""
