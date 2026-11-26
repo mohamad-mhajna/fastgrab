@@ -35,6 +35,29 @@ class WindowMath(unittest.TestCase):
         self.assertEqual(fastgrab_app.hhmm("abc", "02:00"), "02:00")
 
 
+class SaveRace(unittest.TestCase):
+    def test_parallel_saves_never_fail(self):
+        """Downloads finishing on several threads save at the same time; this used
+        to crash the app with FileNotFoundError (two saves sharing one temp file)."""
+        import tempfile
+        import threading
+        m = fastgrab_app.Manager(os.path.join(tempfile.mkdtemp(), "downloads.json"))
+        errors = []
+
+        def go():
+            for _ in range(100):
+                try:
+                    m.save()
+                except Exception as e:      # noqa: BLE001
+                    errors.append(repr(e))
+        ts = [threading.Thread(target=go) for _ in range(8)]
+        for t in ts:
+            t.start()
+        for t in ts:
+            t.join()
+        self.assertEqual(errors, [])
+
+
 class FeatureTest(AppBase):
     RATE_KB = 400
     EXTRA_ENV = {"FASTGRAB_POWER_COUNTDOWN": "3"}

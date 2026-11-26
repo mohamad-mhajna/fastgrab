@@ -180,6 +180,7 @@ class Manager:
     def __init__(self, store_path):
         self.store_path = store_path
         self.lock = threading.RLock()
+        self.save_lock = threading.Lock()   # one save at a time (downloads finish on other threads)
         self.items = {}
         self.settings = json.loads(json.dumps(DEFAULT_SETTINGS))
         self.settings["dir"] = default_download_dir()
@@ -212,15 +213,22 @@ class Manager:
             self.items[it.id] = it
 
     def save(self):
-        with self.lock:
-            for it in self.items.values():
-                it.sync_from_dl()
-            data = {"settings": self.settings,
-                    "items": [it.to_saved() for it in self.items.values()]}
-        tmp = self.store_path + ".tmp"
-        with open(tmp, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=1)
-        os.replace(tmp, self.store_path)
+        with self.save_lock:
+            with self.lock:
+                for it in self.items.values():
+                    it.sync_from_dl()
+                data = {"settings": self.settings,
+                        "items": [it.to_saved() for it in self.items.values()]}
+            tmp = f"{self.store_path}.{os.getpid()}.tmp"
+            with open(tmp, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=1)
+            for attempt in range(5):       # Windows: antivirus/indexer may hold the file briefly
+                try:
+                    os.replace(tmp, self.store_path)
+                    return
+                except PermissionError:
+                    time.sleep(0.1 * (attempt + 1))
+            os.replace(tmp, self.store_path)
 
     def resume_interrupted(self):
         for it in list(self.items.values()):
@@ -898,13 +906,18 @@ class App:
         try:
             while True:
                 time.sleep(1)
-                act = self.manager.tick()
-                if act:
-                    do_power(act, self.manager.power["log"])
-                    if act in ("quit", "shutdown") and not os.environ.get("FASTGRAB_DRY_POWER"):
-                        self.quit()
-                if int(time.time()) % 2 == 0:
-                    self.manager.save()
+                try:                        # one failed tick or save must never stop the app
+                    act = self.manager.tick()
+                    if act:
+                        do_power(act, self.manager.power["log"])
+                        if act in ("quit", "shutdown") and not os.environ.get("FASTGRAB_DRY_POWER"):
+                            self.quit()
+                    if int(time.time()) % 2 == 0:
+                        self.manager.save()
+                except Exception:
+                    if sys.stderr:
+                        import traceback
+                        traceback.print_exc()
         except KeyboardInterrupt:
             self.manager.pause_all()
             self.manager.save()
