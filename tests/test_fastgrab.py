@@ -7,6 +7,7 @@ import os
 import random
 import signal
 import socket
+import re
 import subprocess
 import sys
 import tempfile
@@ -67,6 +68,12 @@ def run_fastgrab(url, out, *extra):
                           capture_output=True, text=True, timeout=120)
 
 
+def took(result, fallback):
+    """Seconds from fastgrab's own "Time : 0:05 (5.4 s)" line."""
+    m = re.search(r"Time : .*\(([\d.]+) s\)", result.stdout)
+    return float(m.group(1)) if m else fallback
+
+
 class EndToEnd(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.mkdtemp()
@@ -84,6 +91,9 @@ class EndToEnd(unittest.TestCase):
             self.assertEqual(r8.returncode, 0, r8.stdout)
             self.assertEqual(sha256(os.path.join(self.tmp, "a", "file.bin")), srv.sha)
             self.assertEqual(sha256(os.path.join(self.tmp, "b", "file.bin")), srv.sha)
+            # use the download time fastgrab reports, not the wall clock: starting
+            # Python takes over a second on slow CI machines and isn't download time
+            single, multi = took(r1, single), took(r8, multi)
             self.assertLess(multi, single / 3, f"8 conns {multi:.1f}s vs 1 conn {single:.1f}s")
         finally:
             srv.close()
