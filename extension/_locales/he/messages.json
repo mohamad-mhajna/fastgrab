@@ -1,0 +1,71 @@
+{
+ "extName": {
+  "message": "FastGrab – מנהל הורדות"
+ },
+ "extDesc": {
+  "message": "שולח את ההורדות ודפי הווידאו שלך לאפליקציית FastGrab להורדות מהירות יותר שניתן להמשיך."
+ },
+ "tagline": {
+  "message": "הורדות מהירות עד פי 10"
+ },
+ "status_connected": {
+  "message": "מחובר"
+ },
+ "status_offline": {
+  "message": "האפליקציה לא פתוחה"
+ },
+ "status_unpaired": {
+  "message": "לא מקושר"
+ },
+ "keyLabel": {
+  "message": "מפתח קישור"
+ },
+ "keyHint": {
+  "message": "העתק אותו מ-FastGrab ← הגדרות ← תוסף לדפדפן."
+ },
+ "save": {
+  "message": "שמור"
+ },
+ "captureLabel": {
+  "message": "תפוס הורדות אוטומטית"
+ },
+ "captureHint": {
+  "message": "תוכנות, ארכיונים, סרטונים, מוזיקה ו-PDF עוברים ל-FastGrab. אם FastGrab לא פתוח, הדפדפן מוריד אותם כרגיל."
+ },
+ "grabVideo": {
+  "message": "הורד את הווידאו בדף הזה"
+ },
+ "grabPage": {
+  "message": "חפש וידאו בדף הזה"
+ },
+ "advanced": {
+  "message": "מתקדם"
+ },
+ "portLabel": {
+  "message": "הפורט של FastGrab"
+ },
+ "menuLink": {
+  "message": "הורד את הקישור עם FastGrab"
+ },
+ "menuVideo": {
+  "message": "הורד את הווידאו עם FastGrab"
+ },
+ "notifySent": {
+  "message": "נשלח ל-FastGrab"
+ },
+ "notifyPicker": {
+  "message": "בחר איכות ב-FastGrab"
+ },
+ "notifyFailed": {
+  "message": "לא ניתן לשלוח ל-FastGrab"
+ },
+ "notRunning": {
+  "message": "פתח קודם את FastGrab ואז נסה שוב."
+ },
+ "needPairing": {
+  "message": "הדבק קודם את מפתח הקישור בתוסף FastGrab."
+ },
+ "wrongKey": {
+  "message": "המפתח לא תואם. העתק אותו שוב מההגדרות של FastGrab."
+ }
+}

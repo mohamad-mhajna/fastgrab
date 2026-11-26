@@ -22,15 +22,17 @@ OPENER = urllib.request.build_opener(urllib.request.ProxyHandler({}))
 
 class AppBase(unittest.TestCase):
     RATE_KB = 1024          # per-connection speed of the test server
+    EXTRA_ENV = {}
 
     @classmethod
     def setUpClass(cls):
         cls.tmp = tempfile.mkdtemp()
-        env = dict(os.environ, HOME=cls.tmp, USERPROFILE=cls.tmp, APPDATA=cls.tmp)
+        env = dict(os.environ, HOME=cls.tmp, USERPROFILE=cls.tmp, APPDATA=cls.tmp,
+                   FASTGRAB_NO_AUTO_UPDATE="1", FASTGRAB_DRY_POWER="1", **cls.EXTRA_ENV)
         cmd = os.environ.get("FASTGRAB_APP_CMD")
         cmd = shlex.split(cmd, posix=os.name != "nt") if cmd else [sys.executable, os.path.join(ROOT, "fastgrab_app.py")]
         cls.log = open(os.path.join(cls.tmp, "app.log"), "w+")
-        cls.proc = subprocess.Popen(cmd + ["--no-window"], env=env, cwd=ROOT,
+        cls.proc = subprocess.Popen(cmd + ["--no-window", "--port", "0"], env=env, cwd=ROOT,
                                     stdout=cls.log, stderr=subprocess.STDOUT)
         data = os.path.join(cls.tmp, "FastGrab") if os.name == "nt" else os.path.join(cls.tmp, ".config", "fastgrab")
         info = os.path.join(data, "running.json")

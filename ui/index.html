@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" dir="ltr">
 <head>
 <meta charset="utf-8">
 <title>FastGrab</title>
@@ -13,160 +13,213 @@
   --a1:#8b5cf6; --a2:#22d3ee; --grad:linear-gradient(135deg,var(--a1),var(--a2));
   --ok:#34d399; --warn:#fbbf24; --bad:#f87171; --info:#60a5fa;
   --r:14px; --r-sm:9px;
+  --ease:cubic-bezier(.22,1,.36,1); --spring:cubic-bezier(.34,1.56,.64,1);
   --font:"Segoe UI Variable Text","Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
   --mono:"Cascadia Mono","SF Mono",Consolas,ui-monospace,monospace;
 }
 *{box-sizing:border-box}
 html,body{height:100%;margin:0}
 body{background:var(--bg);color:var(--text);font:13.5px/1.45 var(--font);overflow:hidden;-webkit-font-smoothing:antialiased;user-select:none}
-/* ambient light behind the glass */
+/* ambient light behind the glass, slowly drifting */
 body::before,body::after{content:"";position:fixed;border-radius:50%;filter:blur(110px);opacity:.38;pointer-events:none;z-index:0}
-body::before{width:620px;height:620px;left:-160px;top:-220px;background:#6d28d9}
-body::after{width:560px;height:560px;right:-180px;bottom:-240px;background:#0891b2}
-button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
+body::before{width:620px;height:620px;left:-160px;top:-220px;background:#6d28d9;animation:drift1 28s ease-in-out infinite alternate}
+body::after{width:560px;height:560px;right:-180px;bottom:-240px;background:#0891b2;animation:drift2 32s ease-in-out infinite alternate}
+@keyframes drift1{to{transform:translate(120px,80px) scale(1.12)}}
+@keyframes drift2{to{transform:translate(-110px,-70px) scale(1.1)}}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none;transition:transform .15s var(--ease),background .15s,color .15s,border-color .15s,box-shadow .2s,filter .15s}
+button:active:not(:disabled){transform:scale(.96)}
 input,select{font:inherit;color:inherit}
-.app{position:relative;z-index:1;display:grid;grid-template-columns:232px 1fr;height:100vh;gap:12px;padding:12px}
+.app{position:relative;z-index:1;display:grid;grid-template-columns:236px 1fr;height:100vh;gap:12px;padding:12px}
 .glass{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);backdrop-filter:blur(22px) saturate(140%);-webkit-backdrop-filter:blur(22px) saturate(140%);box-shadow:0 1px 0 rgba(255,255,255,.06) inset,0 20px 50px -20px rgba(0,0,0,.6)}
+.enter{animation:panelIn .6s var(--ease) both}
+@keyframes panelIn{from{opacity:0;transform:translateY(10px) scale(.99)}}
+.num,.tab{font-variant-numeric:tabular-nums}
+.ltr{direction:ltr;unicode-bidi:isolate}
 
 /* ---------- sidebar ---------- */
-.side{display:flex;flex-direction:column;padding:16px 12px;gap:4px}
+.side{display:flex;flex-direction:column;padding:16px 12px;gap:2px;position:relative;min-height:0;overflow-y:auto}
+.side::-webkit-scrollbar{width:0}
 .brand{display:flex;align-items:center;gap:10px;padding:2px 8px 18px}
-.logo{width:34px;height:34px;border-radius:10px;background:var(--grad);display:grid;place-items:center;box-shadow:0 8px 24px -6px rgba(139,92,246,.7)}
+.logo{width:34px;height:34px;border-radius:10px;background:var(--grad);display:grid;place-items:center;box-shadow:0 8px 24px -6px rgba(139,92,246,.7);flex:none}
+.logo svg{transition:transform .4s var(--spring)}
+.brand:hover .logo svg{transform:rotate(-12deg) scale(1.1)}
 .brand b{font-size:16px;letter-spacing:.2px}
 .brand small{display:block;color:var(--faint);font-size:11px;margin-top:-2px}
-.nav{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:var(--r-sm);color:var(--muted);transition:background .15s,color .15s}
-.nav:hover{background:var(--panel-2);color:var(--text)}
-.nav.on{background:rgba(139,92,246,.16);color:var(--text);box-shadow:inset 0 0 0 1px rgba(139,92,246,.35)}
+.navs{position:relative;display:flex;flex-direction:column;gap:2px}
+.navind{position:absolute;inset-inline:0;top:0;height:38px;border-radius:var(--r-sm);background:rgba(139,92,246,.16);box-shadow:inset 0 0 0 1px rgba(139,92,246,.35);transition:transform .38s var(--ease),height .38s var(--ease),opacity .2s;pointer-events:none;opacity:0}
+.nav{position:relative;display:flex;align-items:center;gap:10px;padding:9px 10px;height:38px;border-radius:var(--r-sm);color:var(--muted);text-align:start;width:100%}
+.nav:hover{background:rgba(255,255,255,.04);color:var(--text)}
+.nav.on{color:var(--text)}
 .nav svg{width:17px;height:17px;flex:none}
-.nav .n{margin-left:auto;font-size:11.5px;color:var(--faint);font-variant-numeric:tabular-nums}
+.nav .n{margin-inline-start:auto;font-size:11.5px;color:var(--faint);font-variant-numeric:tabular-nums;transition:color .2s}
 .nav.on .n{color:#c4b5fd}
-.side .sec{font-size:10.5px;text-transform:uppercase;letter-spacing:1.1px;color:var(--faint);padding:16px 10px 6px}
-.side .grow{flex:1}
-.speedcard{padding:14px;border-radius:12px;background:linear-gradient(160deg,rgba(139,92,246,.18),rgba(34,211,238,.08));border:1px solid rgba(139,92,246,.25)}
+.nav .n.bump{animation:bump .4s var(--spring)}
+@keyframes bump{50%{transform:scale(1.45);color:#fff}}
+.side .sec{font-size:10.5px;text-transform:uppercase;letter-spacing:1.1px;color:var(--faint);padding:14px 10px 6px}
+.side .grow{flex:1;min-height:10px}
+.card{padding:12px 13px;border-radius:12px;margin-top:8px}
+.speedcard{background:linear-gradient(160deg,rgba(139,92,246,.18),rgba(34,211,238,.08));border:1px solid rgba(139,92,246,.25)}
 .speedcard .lbl{font-size:11px;color:var(--muted)}
 .speedcard .val{font-size:22px;font-weight:650;letter-spacing:-.3px;font-variant-numeric:tabular-nums}
 .speedcard .sub{font-size:11.5px;color:var(--muted)}
-.setting{padding:10px 8px 0}
-.setting label{display:block;font-size:11px;color:var(--faint);margin-bottom:5px}
-.folder{display:flex;gap:6px}
-.folder input{flex:1;min-width:0;background:rgba(0,0,0,.25);border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:12px;color:var(--muted);outline:none}
-.folder input:focus{border-color:var(--a1);color:var(--text)}
-.mini-btn{padding:6px 9px;border-radius:8px;background:var(--panel-2);border:1px solid var(--line);font-size:12px}
-.mini-btn:hover{border-color:var(--line-2)}
+.updcard{background:rgba(52,211,153,.09);border:1px solid rgba(52,211,153,.3);display:none;animation:panelIn .5s var(--ease)}
+.updcard.on{display:block}
+.updcard b{display:block;font-size:12.5px}
+.updcard span{font-size:11.5px;color:var(--muted)}
+.updcard button{margin-top:8px;width:100%;height:30px;border-radius:8px;background:rgba(52,211,153,.18);color:#a7f3d0;font-size:12px;font-weight:600}
+.updcard button:hover{background:rgba(52,211,153,.28)}
+.schedcard{background:rgba(96,165,250,.08);border:1px solid rgba(96,165,250,.25);display:none;font-size:11.5px;color:var(--muted)}
+.schedcard.on{display:block}
+.schedcard b{color:#bfdbfe;display:block;font-size:12px}
+.sidebtns{display:flex;gap:6px;margin-top:10px}
+.sidebtn{flex:1;height:34px;border-radius:9px;border:1px solid var(--line);color:var(--muted);display:flex;align-items:center;justify-content:center;gap:7px;font-size:12.5px}
+.sidebtn:hover{color:var(--text);border-color:var(--line-2);background:var(--panel-2)}
+.sidebtn svg{width:16px;height:16px}
+.sidebtn:hover svg.gear{transform:rotate(60deg)}
+.sidebtn svg.gear{transition:transform .5s var(--ease)}
 
 /* ---------- main ---------- */
 .main{display:grid;grid-template-rows:auto 1fr auto;gap:12px;min-width:0;min-height:0}
 .addbar{display:flex;gap:10px;padding:10px;align-items:center}
-.url{flex:1;display:flex;align-items:center;gap:10px;background:rgba(0,0,0,.28);border:1px solid var(--line);border-radius:11px;padding:0 12px;height:44px;transition:border-color .15s,box-shadow .15s}
+.url{flex:1;display:flex;align-items:center;gap:10px;background:rgba(0,0,0,.28);border:1px solid var(--line);border-radius:11px;padding:0 12px;height:44px;transition:border-color .2s,box-shadow .25s}
 .url:focus-within{border-color:rgba(139,92,246,.7);box-shadow:0 0 0 4px rgba(139,92,246,.15)}
-.url svg{width:18px;height:18px;color:var(--faint);flex:none}
-.url input{flex:1;background:none;border:0;outline:none;font-size:14px;user-select:text}
+.url svg{width:18px;height:18px;color:var(--faint);flex:none;transition:color .2s,transform .3s var(--spring)}
+.url:focus-within svg{color:#c4b5fd;transform:rotate(-20deg)}
+.url input{flex:1;background:none;border:0;outline:none;font-size:14px;user-select:text;min-width:0}
 .url input::placeholder{color:var(--faint)}
-.conns{display:flex;align-items:center;gap:8px;height:44px;padding:0 12px;border-radius:11px;background:rgba(0,0,0,.28);border:1px solid var(--line);color:var(--muted);font-size:12.5px}
+.conns{display:flex;align-items:center;gap:8px;height:44px;padding:0 12px;border-radius:11px;background:rgba(0,0,0,.28);border:1px solid var(--line);color:var(--muted);font-size:12.5px;white-space:nowrap}
 .conns select{background:transparent;border:0;outline:none;color:var(--text);font-weight:600;cursor:pointer}
-.conns option{background:#151722}
-.go{height:44px;padding:0 20px;border-radius:11px;background:var(--grad);font-weight:650;color:white;display:flex;align-items:center;gap:8px;box-shadow:0 10px 28px -10px rgba(139,92,246,.9);transition:transform .12s,filter .15s}
-.go:hover{filter:brightness(1.08)}
-.go:active{transform:scale(.97)}
-.go svg{width:17px;height:17px}
+option{background:#151722;color:var(--text)}
+.go{height:44px;padding:0 20px;border-radius:11px;background:var(--grad);background-size:160% 160%;font-weight:650;color:white;display:flex;align-items:center;gap:8px;box-shadow:0 10px 28px -10px rgba(139,92,246,.9);white-space:nowrap;animation:gradmove 6s ease infinite}
+@keyframes gradmove{50%{background-position:100% 100%}}
+.go:hover{filter:brightness(1.1);box-shadow:0 14px 34px -10px rgba(139,92,246,1)}
+.go svg{width:17px;height:17px;transition:transform .3s var(--spring)}
+.go:hover svg{transform:translateY(2px)}
 
 .listwrap{display:flex;flex-direction:column;min-height:0;overflow:hidden}
 .listhead{display:flex;align-items:center;gap:12px;padding:14px 18px 10px}
 .listhead h2{margin:0;font-size:15px;font-weight:650}
 .listhead .hint{color:var(--faint);font-size:12px}
 .listhead .sp{flex:1}
-.search{display:flex;align-items:center;gap:7px;background:rgba(0,0,0,.25);border:1px solid var(--line);border-radius:9px;padding:0 10px;height:32px}
+.search{display:flex;align-items:center;gap:7px;background:rgba(0,0,0,.25);border:1px solid var(--line);border-radius:9px;padding:0 10px;height:32px;transition:border-color .2s}
+.search:focus-within{border-color:rgba(139,92,246,.6)}
 .search svg{width:14px;height:14px;color:var(--faint)}
 .search input{background:none;border:0;outline:none;width:170px;font-size:12.5px;user-select:text}
-.ghost{height:32px;padding:0 12px;border-radius:9px;border:1px solid var(--line);color:var(--muted);font-size:12.5px}
+.ghost{height:32px;padding:0 12px;border-radius:9px;border:1px solid var(--line);color:var(--muted);font-size:12.5px;white-space:nowrap}
 .ghost:hover{color:var(--text);border-color:var(--line-2)}
 
-.cols,.row{display:grid;grid-template-columns:minmax(220px,1fr) 92px minmax(170px,240px) 92px 78px 104px 96px;align-items:center;gap:12px;padding:0 18px}
+.cols,.row{display:grid;grid-template-columns:minmax(220px,1fr) 92px minmax(170px,240px) 92px 78px 116px 104px;align-items:center;gap:12px;padding:0 18px}
 .cols{font-size:11px;text-transform:uppercase;letter-spacing:.9px;color:var(--faint);height:30px;border-bottom:1px solid var(--line)}
-.rows{overflow-y:auto;flex:1;padding:4px 0 8px}
+.rows{overflow-y:auto;overflow-x:hidden;flex:1;padding:4px 0 8px}
 .rows::-webkit-scrollbar{width:10px}.rows::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:10px;border:3px solid transparent;background-clip:content-box}
-.row{height:58px;margin:2px 8px;padding:0 10px;border-radius:11px;border:1px solid transparent;transition:background .12s,border-color .12s;animation:rowin .28s ease-out}
-@keyframes rowin{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+.row{height:58px;margin:2px 8px;padding:0 10px;border-radius:11px;border:1px solid transparent;transition:background .2s,border-color .2s,opacity .25s,transform .3s var(--ease),height .3s var(--ease),margin .3s var(--ease);animation:rowin .45s var(--ease) both;animation-delay:calc(var(--i,0) * 28ms)}
+@keyframes rowin{from{opacity:0;transform:translateY(-8px) scale(.985)}}
+.row.leaving{opacity:0;transform:translateX(24px);height:0;margin-top:0;margin-bottom:0;border-width:0;pointer-events:none}
+[dir=rtl] .row.leaving{transform:translateX(-24px)}
 .row:hover{background:rgba(255,255,255,.035)}
 .row.sel{background:rgba(139,92,246,.1);border-color:rgba(139,92,246,.35)}
+.row.celebrate{animation:celebrate 1.1s var(--ease)}
+@keyframes celebrate{0%{box-shadow:0 0 0 0 rgba(52,211,153,.5);background:rgba(52,211,153,.14)}100%{box-shadow:0 0 0 14px rgba(52,211,153,0)}}
+.row.celebrate .ficon{animation:pop .6s var(--spring)}
+@keyframes pop{40%{transform:scale(1.25) rotate(-6deg)}}
 .name{display:flex;align-items:center;gap:11px;min-width:0}
-.ficon{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;flex:none;font-size:10px;font-weight:700;letter-spacing:.3px}
+.ficon{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;flex:none;font-size:10px;font-weight:700;letter-spacing:.3px;position:relative}
+.ficon .from{position:absolute;bottom:-3px;inset-inline-end:-3px;width:15px;height:15px;border-radius:50%;background:#1e2130;border:1px solid var(--line-2);display:grid;place-items:center}
+.ficon .from svg{width:9px;height:9px;color:#93c5fd}
 .name .t{min-width:0}
 .name .fn{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:560}
 .name .host{font-size:11.5px;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.num{font-variant-numeric:tabular-nums;color:var(--muted);font-size:12.5px}
+.num{color:var(--muted);font-size:12.5px}
 .prog{display:flex;flex-direction:column;gap:5px}
 .bar{height:6px;border-radius:6px;background:rgba(255,255,255,.07);overflow:hidden;position:relative}
-.bar i{position:absolute;inset:0 auto 0 0;border-radius:6px;background:var(--grad);transition:width .45s ease}
+.bar i{position:absolute;inset-block:0;inset-inline-start:0;border-radius:6px;background:var(--grad);transition:width .55s var(--ease),background .4s}
 .bar.done i{background:var(--ok)}
 .bar.paused i{background:var(--warn)}
 .bar.failed i{background:var(--bad)}
-.bar.live i::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.45),transparent);animation:shine 1.4s linear infinite}
-@keyframes shine{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
+.bar.waiting i{background:rgba(96,165,250,.6)}
+.bar.live i{background-image:repeating-linear-gradient(-45deg,rgba(255,255,255,.18) 0 8px,transparent 8px 16px),var(--grad);background-size:22px 22px,100% 100%;animation:stripes .7s linear infinite}
+[dir=rtl] .bar.live i{animation-direction:reverse}
+@keyframes stripes{to{background-position:22px 0,0 0}}
 .prog .pct{font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums}
-.pill{justify-self:start;font-size:11.5px;font-weight:600;padding:3px 9px;border-radius:20px;display:inline-flex;align-items:center;gap:6px}
-.pill::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.pill{justify-self:start;font-size:11.5px;font-weight:600;padding:3px 9px;border-radius:20px;display:inline-flex;align-items:center;gap:6px;transition:background .3s,color .3s;white-space:nowrap}
+.pill::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;flex:none}
 .pill.downloading{color:#93c5fd;background:rgba(96,165,250,.12)}
 .pill.downloading::before{animation:pulse 1.2s ease-in-out infinite}
 .pill.connecting{color:#c4b5fd;background:rgba(139,92,246,.14)}
+.pill.connecting::before{animation:pulse .7s ease-in-out infinite}
 .pill.queued{color:var(--muted);background:rgba(255,255,255,.06)}
+.pill.scheduled{color:#93c5fd;background:rgba(96,165,250,.08)}
 .pill.paused{color:var(--warn);background:rgba(251,191,36,.12)}
 .pill.completed{color:var(--ok);background:rgba(52,211,153,.12)}
 .pill.failed{color:var(--bad);background:rgba(248,113,113,.12)}
 @keyframes pulse{50%{opacity:.3}}
 .acts{display:flex;gap:4px;justify-content:flex-end}
-.ib{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;color:var(--muted);transition:background .12s,color .12s}
+.ib{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;color:var(--muted)}
 .ib:hover{background:var(--panel-2);color:var(--text)}
 .ib.danger:hover{color:var(--bad);background:rgba(248,113,113,.1)}
-.ib.confirm{color:var(--bad);background:rgba(248,113,113,.16)}
+.ib.confirm{color:var(--bad);background:rgba(248,113,113,.16);animation:shake .35s}
+@keyframes shake{25%{transform:translateX(-2px)}75%{transform:translateX(2px)}}
 .ib svg{width:16px;height:16px}
 
 .empty{flex:1;display:grid;place-items:center;text-align:center;color:var(--muted);padding:40px}
-.empty .art{width:86px;height:86px;border-radius:24px;margin:0 auto 16px;background:linear-gradient(160deg,rgba(139,92,246,.25),rgba(34,211,238,.12));border:1px solid rgba(139,92,246,.3);display:grid;place-items:center}
+.empty .art{width:86px;height:86px;border-radius:24px;margin:0 auto 16px;background:linear-gradient(160deg,rgba(139,92,246,.25),rgba(34,211,238,.12));border:1px solid rgba(139,92,246,.3);display:grid;place-items:center;animation:float 4s ease-in-out infinite}
+@keyframes float{50%{transform:translateY(-8px)}}
 .empty .art svg{width:40px;height:40px;color:#c4b5fd}
 .empty h3{color:var(--text);margin:0 0 6px;font-size:16px}
 .empty p{margin:0;font-size:13px}
 .empty kbd{font:11.5px var(--mono);padding:2px 6px;border-radius:5px;border:1px solid var(--line-2);background:var(--panel-2)}
 
 /* ---------- details ---------- */
-.details{display:grid;grid-template-columns:1fr 300px;gap:18px;padding:16px 18px;min-height:0}
+.details{display:grid;grid-template-columns:1fr 300px;gap:18px;padding:16px 18px;min-height:0;animation:panelIn .45s var(--ease)}
 .details.hide{display:none}
 .dleft{min-width:0;display:flex;flex-direction:column;gap:12px}
 .dtitle{display:flex;align-items:center;gap:10px;min-width:0}
 .dtitle b{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.dtitle span{font-size:12px;color:var(--faint)}
-.lbl2{display:flex;justify-content:space-between;font-size:11px;text-transform:uppercase;letter-spacing:.9px;color:var(--faint);margin-bottom:6px}
-.lbl2 em{font-style:normal;text-transform:none;letter-spacing:0;color:var(--muted)}
+.dtitle span{font-size:12px;color:var(--faint);white-space:nowrap}
+.d-thumb{width:64px;height:36px;border-radius:6px;object-fit:cover;border:1px solid var(--line);display:none;flex:none}
+.lbl2{display:flex;justify-content:space-between;gap:10px;font-size:11px;text-transform:uppercase;letter-spacing:.9px;color:var(--faint);margin-bottom:6px}
+.lbl2 em{font-style:normal;text-transform:none;letter-spacing:0;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 canvas{display:block;width:100%}
 #segs{height:34px;border-radius:8px}
 #graph{height:74px}
-.info{display:grid;grid-template-columns:auto 1fr;gap:7px 14px;font-size:12.5px;align-content:start}
+.info{display:grid;grid-template-columns:auto 1fr;gap:7px 14px;font-size:12.5px;align-content:start;margin:0}
 .info dt{color:var(--faint)}
 .info dd{margin:0;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums;user-select:text}
 .dbtns{display:flex;gap:8px;margin-top:12px}
 .dbtns button{flex:1;height:34px;border-radius:9px;border:1px solid var(--line);background:var(--panel-2);font-size:12.5px}
-.dbtns button:hover{border-color:var(--line-2)}
+.dbtns button:hover:not(:disabled){border-color:var(--line-2)}
 .dbtns button:disabled{opacity:.35;cursor:default}
 
 /* ---------- toasts / overlays ---------- */
-.toasts{position:fixed;right:26px;top:92px;display:flex;flex-direction:column;gap:10px;z-index:10}
-.toast{min-width:280px;max-width:380px;padding:12px 14px;border-radius:12px;background:rgba(22,24,34,.92);border:1px solid var(--line-2);backdrop-filter:blur(20px);display:flex;gap:11px;align-items:flex-start;box-shadow:0 18px 40px -12px rgba(0,0,0,.7);animation:tin .25s ease-out}
-.toast.out{animation:tout .25s ease-in forwards}
-@keyframes tin{from{opacity:0;transform:translateY(-8px) scale(.98)}}
-@keyframes tout{to{opacity:0;transform:translateY(-8px)}}
-.toast .dot{width:8px;height:8px;border-radius:50%;margin-top:6px;flex:none}
+.toasts{position:fixed;inset-inline-end:26px;top:92px;display:flex;flex-direction:column;gap:10px;z-index:40}
+.toast{min-width:280px;max-width:380px;padding:12px 14px;border-radius:12px;background:rgba(22,24,34,.94);border:1px solid var(--line-2);backdrop-filter:blur(20px);display:flex;gap:11px;align-items:flex-start;box-shadow:0 18px 40px -12px rgba(0,0,0,.7);animation:tin .4s var(--spring)}
+.toast.out{animation:tout .3s var(--ease) forwards}
+@keyframes tin{from{opacity:0;transform:translateY(-10px) scale(.95)}}
+@keyframes tout{to{opacity:0;transform:translateY(-8px) scale(.97)}}
+.toast .dot{width:8px;height:8px;border-radius:50%;margin-top:6px;flex:none;box-shadow:0 0 0 0 currentColor;animation:ring 1.2s ease-out}
+@keyframes ring{from{box-shadow:0 0 0 0 rgba(255,255,255,.35)}to{box-shadow:0 0 0 10px rgba(255,255,255,0)}}
 .toast b{display:block;font-size:13px}
-.toast span{font-size:12px;color:var(--muted);word-break:break-all}
-.drop{position:fixed;inset:12px;border-radius:18px;border:2px dashed rgba(139,92,246,.8);background:rgba(76,29,149,.25);backdrop-filter:blur(6px);display:none;place-items:center;z-index:20;font-size:18px;font-weight:600}
-.drop.on{display:grid}
-.offline{position:fixed;inset:0;background:rgba(7,8,13,.85);backdrop-filter:blur(8px);display:none;place-items:center;z-index:30;text-align:center;color:var(--muted)}
-.offline.on{display:grid}
-/* video picker */
-.modal{position:fixed;inset:0;background:rgba(5,6,10,.62);backdrop-filter:blur(6px);display:none;place-items:center;z-index:25}
-.modal.on{display:grid}
-.mbox{width:560px;max-width:calc(100vw - 40px);border-radius:18px;background:rgba(20,22,32,.96);border:1px solid var(--line-2);box-shadow:0 30px 80px -20px rgba(0,0,0,.8);padding:22px;animation:tin .2s ease-out}
+.toast span{font-size:12px;color:var(--muted);word-break:break-word}
+.drop{position:fixed;inset:12px;border-radius:18px;border:2px dashed rgba(139,92,246,.8);background:rgba(76,29,149,.25);backdrop-filter:blur(6px);display:grid;place-items:center;z-index:20;font-size:18px;font-weight:600;opacity:0;pointer-events:none;transition:opacity .2s;transform:scale(1.01)}
+.drop.on{opacity:1}
+.overlay{position:fixed;inset:0;background:rgba(7,8,13,.85);backdrop-filter:blur(8px);display:grid;place-items:center;z-index:60;text-align:center;color:var(--muted);opacity:0;pointer-events:none;transition:opacity .3s}
+.overlay.on{opacity:1;pointer-events:auto}
+.overlay b{display:block;color:var(--text);font-size:16px;margin-bottom:6px}
+.powerbar{position:fixed;top:18px;left:50%;transform:translate(-50%,-140%);z-index:45;display:flex;align-items:center;gap:14px;padding:10px 12px 10px 16px;border-radius:14px;background:rgba(40,20,24,.95);border:1px solid rgba(248,113,113,.45);box-shadow:0 20px 50px -14px rgba(0,0,0,.8);transition:transform .45s var(--spring)}
+.powerbar.on{transform:translate(-50%,0)}
+.powerbar b{font-size:13.5px}
+.powerbar .cd{font:600 20px var(--font);color:#fecaca;font-variant-numeric:tabular-nums;min-width:34px;text-align:center}
+.powerbar button{height:32px;padding:0 14px;border-radius:9px;background:rgba(248,113,113,.2);color:#fecaca;font-weight:600}
+.powerbar button:hover{background:rgba(248,113,113,.32)}
+
+/* ---------- modals ---------- */
+.modal{position:fixed;inset:0;background:rgba(5,6,10,.62);backdrop-filter:blur(6px);display:grid;place-items:center;z-index:25;opacity:0;pointer-events:none;transition:opacity .25s var(--ease)}
+.modal.on{opacity:1;pointer-events:auto}
+.mbox{width:560px;max-width:calc(100vw - 40px);max-height:calc(100vh - 40px);overflow-y:auto;border-radius:18px;background:rgba(20,22,32,.97);border:1px solid var(--line-2);box-shadow:0 30px 80px -20px rgba(0,0,0,.8);padding:22px;transform:translateY(14px) scale(.96);transition:transform .4s var(--spring)}
+.modal.on .mbox{transform:none}
+.mbox::-webkit-scrollbar{width:8px}.mbox::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:8px}
 .mhead{display:flex;align-items:center;gap:10px;margin-bottom:14px}
-.mhead b{font-size:15px}.mhead .x{margin-left:auto}
+.mhead b{font-size:15px}.mhead .x{margin-inline-start:auto}
 .vinfo{display:flex;gap:14px;align-items:flex-start;margin-bottom:16px}
 .vthumb{width:176px;height:99px;border-radius:10px;object-fit:cover;background:#111522;flex:none;border:1px solid var(--line)}
 .vmeta{min-width:0}
@@ -184,106 +237,353 @@ canvas{display:block;width:100%}
 @keyframes rot{to{transform:rotate(360deg)}}
 .mcenter{text-align:center;color:var(--muted);padding:10px 0 4px}
 .mcenter p{margin:6px 0 14px;font-size:13px}
-.d-thumb{width:64px;height:36px;border-radius:6px;object-fit:cover;border:1px solid var(--line);display:none}
-.offline b{display:block;color:var(--text);font-size:16px;margin-bottom:6px}
+.skel{border-radius:8px;background:linear-gradient(90deg,rgba(255,255,255,.04),rgba(255,255,255,.1),rgba(255,255,255,.04));background-size:200% 100%;animation:shimmer 1.2s linear infinite}
+@keyframes shimmer{to{background-position:-200% 0}}
+
+/* settings */
+.settings .mbox{width:640px;padding:0}
+.settings .mhead{padding:20px 22px 0;margin-bottom:10px}
+.stabs{display:flex;gap:4px;padding:0 22px;border-bottom:1px solid var(--line);position:relative}
+.stab{padding:10px 12px;color:var(--muted);font-size:13px;position:relative}
+.stab.on{color:var(--text)}
+.stabind{position:absolute;bottom:-1px;height:2px;border-radius:2px;background:var(--grad);transition:left .35s var(--ease),width .35s var(--ease),right .35s var(--ease)}
+.spanes{padding:18px 22px 22px;min-height:360px}
+.spane{display:none;animation:paneIn .35s var(--ease)}
+.spane.on{display:block}
+@keyframes paneIn{from{opacity:0;transform:translateY(6px)}}
+.srow{display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid var(--line)}
+.srow:last-child{border-bottom:0}
+.srow .lab{flex:1;min-width:0}
+.srow .lab b{display:block;font-size:13.5px;font-weight:600}
+.srow .lab span{display:block;font-size:12px;color:var(--muted);margin-top:2px}
+.seg{display:inline-flex;background:rgba(0,0,0,.3);border:1px solid var(--line);border-radius:10px;padding:3px;gap:2px;position:relative}
+.seg button{position:relative;z-index:1;padding:6px 12px;border-radius:7px;font-size:12.5px;color:var(--muted);white-space:nowrap}
+.seg button.on{color:#fff}
+.seg .segind{position:absolute;top:3px;bottom:3px;border-radius:7px;background:rgba(139,92,246,.35);box-shadow:inset 0 0 0 1px rgba(139,92,246,.7);transition:left .35s var(--ease),width .35s var(--ease)}
+.inp{background:rgba(0,0,0,.3);border:1px solid var(--line);border-radius:9px;padding:7px 10px;outline:none;color:var(--text);font-size:13px}
+.inp:focus{border-color:rgba(139,92,246,.7)}
+select.inp{cursor:pointer}
+input[type=time].inp{color-scheme:dark;width:116px}
+.dirbox{display:flex;gap:6px;width:310px}
+.dirbox .inp{flex:1;min-width:0;font-size:12px}
+.tog{width:40px;height:23px;border-radius:20px;background:#2a2d3a;position:relative;flex:none;transition:background .25s}
+.tog::after{content:"";position:absolute;top:3px;inset-inline-start:3px;width:17px;height:17px;border-radius:50%;background:#fff;transition:transform .35s var(--spring);box-shadow:0 2px 6px rgba(0,0,0,.4)}
+.tog.on{background:var(--a1)}
+.tog.on::after{transform:translateX(17px)}
+[dir=rtl] .tog.on::after{transform:translateX(-17px)}
+.sbtn{height:34px;padding:0 14px;border-radius:9px;border:1px solid var(--line-2);background:var(--panel-2);font-size:12.5px;white-space:nowrap}
+.sbtn:hover:not(:disabled){border-color:rgba(139,92,246,.6)}
+.sbtn:disabled{opacity:.4;cursor:default}
+.sbtn.primary{background:var(--grad);border:0;color:#fff;font-weight:600}
+.keybox{display:flex;gap:6px;align-items:center}
+.keybox code{font:12.5px var(--mono);background:rgba(0,0,0,.35);border:1px solid var(--line);border-radius:8px;padding:7px 10px;direction:ltr;user-select:all;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.steps{margin:6px 0 0;padding-inline-start:20px;color:var(--muted);font-size:12.5px;line-height:1.7}
+.steps code{font:11.5px var(--mono);color:#c4b5fd}
+.statusline{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted)}
+.statusline i{width:8px;height:8px;border-radius:50%;background:var(--faint);flex:none}
+.statusline.ok i{background:var(--ok);box-shadow:0 0 0 4px rgba(52,211,153,.15)}
+.statusline.warn i{background:var(--warn)}
+.updbox{border-radius:12px;padding:12px 14px;margin-top:12px;background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.28);display:none}
+.updbox.on{display:block;animation:panelIn .4s var(--ease)}
+.updbox b{display:block}
+.updbox pre{white-space:pre-wrap;font:12px var(--font);color:var(--muted);margin:6px 0 10px;max-height:120px;overflow:auto}
+
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important}
+}
 </style>
 </head>
 <body>
 <div class="app">
   <!-- sidebar -->
-  <aside class="side glass">
+  <aside class="side glass enter">
     <div class="brand">
       <div class="logo"><svg width="18" height="18" viewBox="0 0 24 24"><path d="M13.5 2 5 14h6l-1.5 8L19 9.5h-6z" fill="#fff"/></svg></div>
-      <div><b>FastGrab</b><small id="ver">download manager</small></div>
+      <div><b>FastGrab</b><small id="ver" class="ltr"></small></div>
     </div>
-    <button class="nav on" data-f="all"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg>All downloads<span class="n" id="n-all">0</span></button>
-    <button class="nav" data-f="active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 4v12m0 0-5-5m5 5 5-5M5 20h14"/></svg>Downloading<span class="n" id="n-active">0</span></button>
-    <button class="nav" data-f="completed"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="m8 12.5 2.7 2.7L16 9.8"/></svg>Completed<span class="n" id="n-completed">0</span></button>
-    <button class="nav" data-f="stopped"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M10 9v6m4-6v6"/></svg>Paused &amp; failed<span class="n" id="n-stopped">0</span></button>
-
-    <div class="sec">Categories</div>
-    <button class="nav" data-f="video"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m10 9 5 3-5 3z"/></svg>Video<span class="n" id="n-video">0</span></button>
-    <button class="nav" data-f="audio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 18V6l11-2v12"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg>Music<span class="n" id="n-audio">0</span></button>
-    <button class="nav" data-f="archive"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="3" width="16" height="18" rx="3"/><path d="M12 3v2m0 3v2m0 3v2"/></svg>Archives<span class="n" id="n-archive">0</span></button>
-    <button class="nav" data-f="doc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg>Documents<span class="n" id="n-doc">0</span></button>
-    <button class="nav" data-f="app"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M3 9h18"/></svg>Programs<span class="n" id="n-app">0</span></button>
+    <div class="navs" id="navs">
+      <div class="navind" id="navind"></div>
+      <button class="nav on" data-f="all"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg><span data-t="f_all"></span><span class="n" id="n-all">0</span></button>
+      <button class="nav" data-f="active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 4v12m0 0-5-5m5 5 5-5M5 20h14"/></svg><span data-t="f_active"></span><span class="n" id="n-active">0</span></button>
+      <button class="nav" data-f="completed"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="m8 12.5 2.7 2.7L16 9.8"/></svg><span data-t="f_completed"></span><span class="n" id="n-completed">0</span></button>
+      <button class="nav" data-f="stopped"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M10 9v6m4-6v6"/></svg><span data-t="f_stopped"></span><span class="n" id="n-stopped">0</span></button>
+      <div class="sec" data-t="categories"></div>
+      <button class="nav" data-f="video"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m10 9 5 3-5 3z"/></svg><span data-t="f_video"></span><span class="n" id="n-video">0</span></button>
+      <button class="nav" data-f="audio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 18V6l11-2v12"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg><span data-t="f_audio"></span><span class="n" id="n-audio">0</span></button>
+      <button class="nav" data-f="archive"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="3" width="16" height="18" rx="3"/><path d="M12 3v2m0 3v2m0 3v2"/></svg><span data-t="f_archive"></span><span class="n" id="n-archive">0</span></button>
+      <button class="nav" data-f="doc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg><span data-t="f_doc"></span><span class="n" id="n-doc">0</span></button>
+      <button class="nav" data-f="app"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M3 9h18"/></svg><span data-t="f_app"></span><span class="n" id="n-app">0</span></button>
+    </div>
 
     <div class="grow"></div>
-    <div class="speedcard">
-      <div class="lbl">Total speed</div>
-      <div class="val" id="tspeed">0 B/s</div>
-      <div class="sub" id="tsub">Nothing downloading</div>
+    <div class="card updcard" id="updcard"><b id="updtitle"></b><span id="updsub"></span><button id="updbtn"></button></div>
+    <div class="card schedcard" id="schedcard"><b id="schedtitle"></b><span id="schedsub"></span></div>
+    <div class="card speedcard">
+      <div class="lbl" data-t="total_speed"></div>
+      <div class="val ltr" id="tspeed">0 B/s</div>
+      <div class="sub" id="tsub"></div>
     </div>
-    <div class="setting">
-      <label>Save to</label>
-      <div class="folder"><input id="dir" spellcheck="false" title="Download folder"><button class="mini-btn" id="pick">Change</button></div>
+    <div class="sidebtns">
+      <button class="sidebtn" id="openSettings"><svg class="gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg><span data-t="settings"></span></button>
     </div>
   </aside>
 
   <!-- main -->
   <main class="main">
-    <div class="addbar glass">
+    <div class="addbar glass enter" style="animation-delay:.05s">
       <div class="url">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1 1"/><path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1-1"/></svg>
-        <input id="url" placeholder="Paste a download link or a video link (YouTube, TikTok, Instagram…)" spellcheck="false" autocomplete="off">
+        <input id="url" spellcheck="false" autocomplete="off" dir="auto">
       </div>
-      <div class="conns" title="How many connections to use">Connections
-        <select id="conns"><option>1</option><option>2</option><option>4</option><option selected>8</option><option>12</option><option>16</option><option>24</option><option>32</option></select>
+      <div class="conns"><span data-t="connections"></span>
+        <select id="conns"><option>1</option><option>2</option><option>4</option><option>8</option><option>12</option><option>16</option><option>24</option><option>32</option></select>
       </div>
-      <button class="go" id="go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 4v12m0 0-5-5m5 5 5-5M5 20h14"/></svg>Download</button>
+      <button class="go" id="go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 4v12m0 0-5-5m5 5 5-5M5 20h14"/></svg><span data-t="download"></span></button>
     </div>
 
-    <section class="listwrap glass">
+    <section class="listwrap glass enter" style="animation-delay:.1s">
       <div class="listhead">
-        <h2 id="title">All downloads</h2><span class="hint" id="hint"></span>
+        <h2 id="title"></h2><span class="hint" id="hint"></span>
         <span class="sp"></span>
-        <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="q" placeholder="Search" spellcheck="false"></div>
-        <button class="ghost" id="clear">Clear completed</button>
+        <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="q" spellcheck="false" dir="auto"></div>
+        <button class="ghost" id="clear" data-t="clear_completed"></button>
       </div>
-      <div class="cols"><span>Name</span><span>Size</span><span>Progress</span><span>Speed</span><span>Time left</span><span>Status</span><span></span></div>
+      <div class="cols"><span data-t="c_name"></span><span data-t="c_size"></span><span data-t="c_progress"></span><span data-t="c_speed"></span><span data-t="c_left"></span><span data-t="c_status"></span><span></span></div>
       <div class="rows" id="rows"></div>
       <div class="empty" id="empty">
         <div>
           <div class="art"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 4v12m0 0-5-5m5 5 5-5M5 20h14"/></svg></div>
-          <h3>No downloads yet</h3>
-          <p>Paste a link above, press <kbd>Ctrl</kbd> + <kbd>V</kbd> anywhere,<br>or drag a link onto this window.</p>
+          <h3 id="emptyTitle"></h3>
+          <p id="emptyText"></p>
         </div>
       </div>
     </section>
 
     <section class="details glass hide" id="details">
       <div class="dleft">
-        <div class="dtitle"><img class="d-thumb" id="d-thumb" alt=""><b id="d-name"></b><span id="d-sub"></span></div>
+        <div class="dtitle"><img class="d-thumb" id="d-thumb" alt=""><b id="d-name" dir="auto"></b><span id="d-sub" class="ltr"></span></div>
         <div>
-          <div class="lbl2"><span>Connections map</span><em id="d-conns"></em></div>
+          <div class="lbl2"><span data-t="conn_map"></span><em id="d-conns"></em></div>
           <canvas id="segs"></canvas>
         </div>
         <div>
-          <div class="lbl2"><span>Speed</span><em id="d-speed"></em></div>
+          <div class="lbl2"><span data-t="speed"></span><em id="d-speed"></em></div>
           <canvas id="graph"></canvas>
         </div>
       </div>
       <div>
         <dl class="info">
-          <dt>Status</dt><dd id="d-status"></dd>
-          <dt>Downloaded</dt><dd id="d-done"></dd>
-          <dt>Saved to</dt><dd id="d-dir"></dd>
-          <dt>Source</dt><dd id="d-url"></dd>
-          <dt>Resume</dt><dd id="d-res"></dd>
-          <dt>Added</dt><dd id="d-added"></dd>
+          <dt data-t="i_status"></dt><dd id="d-status"></dd>
+          <dt data-t="i_done"></dt><dd id="d-done"></dd>
+          <dt data-t="i_saved"></dt><dd id="d-dir" dir="ltr"></dd>
+          <dt data-t="i_source"></dt><dd id="d-url" dir="ltr"></dd>
+          <dt data-t="i_resume"></dt><dd id="d-res"></dd>
+          <dt data-t="i_added"></dt><dd id="d-added"></dd>
         </dl>
-        <div class="dbtns"><button id="d-open">Open file</button><button id="d-folder">Show in folder</button></div>
+        <div class="dbtns"><button id="d-open" data-t="open_file"></button><button id="d-folder" data-t="show_folder"></button></div>
       </div>
     </section>
   </main>
 </div>
+
 <div class="modal" id="vmodal"><div class="mbox" id="vbox"></div></div>
+
+<div class="modal settings" id="smodal"><div class="mbox">
+  <div class="mhead"><b data-t="settings"></b><button class="ib x" data-close="smodal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+  <div class="stabs" id="stabs">
+    <button class="stab on" data-p="general" data-t="s_general"></button>
+    <button class="stab" data-p="schedule" data-t="s_schedule"></button>
+    <button class="stab" data-p="updates" data-t="s_updates"></button>
+    <button class="stab" data-p="browser" data-t="s_browser"></button>
+    <div class="stabind" id="stabind"></div>
+  </div>
+  <div class="spanes">
+    <div class="spane on" data-p="general">
+      <div class="srow"><div class="lab"><b data-t="language"></b><span data-t="language_d"></span></div>
+        <div class="seg" id="langseg"><div class="segind"></div><button data-v="en">English</button><button data-v="ar">العربية</button><button data-v="he">עברית</button></div></div>
+      <div class="srow"><div class="lab"><b data-t="save_to"></b><span data-t="save_to_d"></span></div>
+        <div class="dirbox"><input class="inp" id="s-dir" spellcheck="false" dir="ltr"><button class="sbtn" id="s-pick" data-t="change"></button></div></div>
+      <div class="srow"><div class="lab"><b data-t="def_conns"></b><span data-t="def_conns_d"></span></div>
+        <select class="inp" id="s-conns"><option>1</option><option>2</option><option>4</option><option>8</option><option>12</option><option>16</option><option>24</option><option>32</option></select></div>
+      <div class="srow"><div class="lab"><b data-t="max_active"></b><span data-t="max_active_d"></span></div>
+        <select class="inp" id="s-max"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>8</option><option>10</option></select></div>
+    </div>
+    <div class="spane" data-p="schedule">
+      <div class="srow"><div class="lab"><b data-t="sched_on"></b><span data-t="sched_on_d"></span></div><button class="tog" id="s-sched"></button></div>
+      <div class="srow"><div class="lab"><b data-t="sched_from"></b><span data-t="sched_from_d"></span></div>
+        <div style="display:flex;gap:8px;align-items:center" class="ltr"><input type="time" class="inp" id="s-start"><span style="color:var(--faint)">–</span><input type="time" class="inp" id="s-stop"></div></div>
+      <div class="srow"><div class="lab"><span id="s-schedstate" class="statusline"></span></div></div>
+      <div class="srow"><div class="lab"><b data-t="when_done"></b><span data-t="when_done_d"></span></div>
+        <select class="inp" id="s-done"><option value="none" data-t="wd_none"></option><option value="quit" data-t="wd_quit"></option><option value="sleep" data-t="wd_sleep"></option><option value="shutdown" data-t="wd_shutdown"></option></select></div>
+    </div>
+    <div class="spane" data-p="updates">
+      <div class="srow"><div class="lab"><b>FastGrab <span class="ltr" id="u-app"></span></b><span id="u-video"></span></div>
+        <button class="sbtn" id="u-check" data-t="check_now"></button></div>
+      <div class="updbox" id="u-box"><b id="u-boxtitle"></b><pre id="u-notes"></pre><button class="sbtn primary" id="u-install"></button></div>
+      <div class="srow"><div class="lab"><span id="u-status" class="statusline"></span></div></div>
+      <div class="srow"><div class="lab"><b data-t="auto_video"></b><span data-t="auto_video_d"></span></div><button class="tog" id="s-autovideo"></button></div>
+      <div class="srow"><div class="lab"><b data-t="auto_app"></b><span data-t="auto_app_d"></span></div><button class="tog" id="s-autoapp"></button></div>
+    </div>
+    <div class="spane" data-p="browser">
+      <div class="srow"><div class="lab"><b data-t="ext_title"></b><span data-t="ext_d"></span></div></div>
+      <div class="srow"><div class="lab"><b data-t="pair_key"></b><span id="e-status" class="statusline"></span></div>
+        <div class="keybox"><code id="e-key"></code><button class="sbtn" id="e-copy" data-t="copy"></button></div></div>
+      <div class="srow" style="display:block">
+        <div class="lab"><b data-t="ext_install"></b></div>
+        <ol class="steps" id="e-steps"></ol>
+        <div style="display:flex;gap:8px;margin-top:10px"><button class="sbtn" id="e-folder" data-t="open_ext_folder"></button><button class="sbtn" id="e-newkey" data-t="new_key"></button></div>
+      </div>
+    </div>
+  </div>
+</div></div>
+
+<div class="powerbar" id="powerbar"><span class="cd" id="pcd">60</span><b id="ptext"></b><button id="pcancel" data-t="cancel"></button></div>
 <div class="toasts" id="toasts"></div>
-<div class="drop" id="drop">Drop the link to download it</div>
-<div class="offline" id="offline"><div><b>FastGrab has closed</b>Start FastGrab again to continue. Paused downloads will resume from where they stopped.</div></div>
+<div class="drop" id="drop"></div>
+<div class="overlay" id="offline"><div><b data-t="closed_t"></b><span data-t="closed_d"></span></div></div>
+<div class="overlay" id="restarting"><div><div class="spin"></div><b data-t="restarting"></b></div></div>
 
 <script>
 "use strict";
+/* ====================================================================== i18n */
+const I18N = {
+en:{f_all:"All downloads",f_active:"Downloading",f_completed:"Completed",f_stopped:"Paused & failed",categories:"Categories",f_video:"Video",f_audio:"Music",f_archive:"Archives",f_doc:"Documents",f_app:"Programs",
+total_speed:"Total speed",nothing:"Nothing downloading",active_n:"{n} active · {c} connections",settings:"Settings",connections:"Connections",download:"Download",
+url_ph:"Paste a download link or a video link (YouTube, TikTok, Instagram…)",search:"Search",clear_completed:"Clear completed",
+c_name:"Name",c_size:"Size",c_progress:"Progress",c_speed:"Speed",c_left:"Time left",c_status:"Status",
+empty_t:"No downloads yet",empty_none:"Nothing here",empty_d:"Paste a link above, press <kbd>Ctrl</kbd> + <kbd>V</kbd> anywhere,<br>or drag a link onto this window.",
+n_items:"{n} items",n_item:"1 item",conn_map:"Connections map",speed:"Speed",
+i_status:"Status",i_done:"Downloaded",i_saved:"Saved to",i_source:"Source",i_resume:"Resume",i_added:"Added",open_file:"Open file",show_folder:"Show in folder",
+st_downloading:"Downloading",st_connecting:"Connecting",st_queued:"Queued",st_scheduled:"Scheduled",st_paused:"Paused",st_completed:"Completed",st_failed:"Failed",
+done:"Done",of:"{a} of {b}",res_yes:"Supported (crash-safe)",res_no:"Not supported by server",
+conns_live:"{a} of {b} connections active · {s} segments",segments:"{s} segments",conns_n:"{n} connections",streams_av:"video and audio streams",stream_v:"video stream",
+speed_now:"{s} now · peak {p}",peak:"peak {p}",
+a_pause:"Pause",a_hold:"Hold",a_resume:"Resume",a_retry:"Retry",a_cancel:"Cancel and delete",a_confirm:"Click again to cancel and delete the partial file",a_open:"Open file",a_folder:"Show in folder",a_remove:"Remove from list (keeps the file)",a_startnow:"Start now (ignore schedule)",
+t_notlink:"Not a download link",t_notlink_d:"Links must start with http:// or https://",t_started:"Download started",t_added_n:"{n} downloads added",t_cantadd:"Couldn't add download",
+t_complete:"Download complete",t_failed:"Download failed",t_action:"Action failed",t_from_browser:"Download from your browser",t_folder:"Download folder changed",t_copied:"Pairing key copied",
+drop:"Drop the link to download it",closed_t:"FastGrab has closed",closed_d:"Start FastGrab again to continue. Paused downloads will resume from where they stopped.",restarting:"Restarting FastGrab…",
+v_title:"Video download",v_getting:"Getting video info from {h}…",v_cant:"Can't download this video",close:"Close",cancel:"Cancel",quality:"Quality",v_rights:"Only download videos you have the right to save.",
+q_best:"Best quality",q_audio:"Audio only",v_started:"Video download started",v_noffmpeg:"FFmpeg isn't available, so on some sites (like YouTube) only lower qualities come with sound. FastGrab picks the best one that includes sound.",
+v_nojs:"No JavaScript runtime (Node.js or Deno) was found, so YouTube may fail or offer fewer qualities.",v_add:"Add video support",v_installing:"Installing video support… this takes about a minute.",
+v_need:"Downloading from YouTube, TikTok, Instagram, X and 1,000+ other sites needs the free <b>yt-dlp</b> add-on (about 15 MB).",v_install:"Install video support",v_installed:"Video support installed",v_installed_d:"You can now download from video sites",
+err_webpage:"This link opens a web page, not a file. Install video support to download videos from websites.",
+s_general:"General",s_schedule:"Schedule",s_updates:"Updates",s_browser:"Browser extension",
+language:"Language",language_d:"The language of FastGrab's window",save_to:"Save downloads to",save_to_d:"New downloads go into this folder",change:"Change",
+def_conns:"Connections per download",def_conns_d:"8 suits most servers; 16 for big files from fast servers",max_active:"Downloads at the same time",max_active_d:"The rest wait in the queue",
+sched_on:"Download only at certain times",sched_on_d:"Queued downloads wait for the time window; running ones pause when it ends",sched_from:"Time window",sched_from_d:"For example 02:00–08:00 for night-time internet",
+sched_open:"Inside the window now: downloads run",sched_closed:"Outside the window: new downloads wait until {t}",sched_off:"Off: downloads start right away",
+when_done:"When all downloads finish",when_done_d:"Runs once, then switches back to \"Do nothing\". You get 60 seconds to cancel.",
+wd_none:"Do nothing",wd_quit:"Close FastGrab",wd_sleep:"Put the PC to sleep",wd_shutdown:"Shut down the PC",
+p_sleep:"Putting the PC to sleep",p_shutdown:"Shutting down the PC",p_quit:"Closing FastGrab",p_in:"in {s} seconds — all downloads finished",
+sched_card:"Schedule {a}–{b}",sched_card_wait:"{n} waiting · starts {t}",sched_card_run:"Running now · until {t}",
+check_now:"Check now",checking:"Checking…",installing:"Installing…",up_to_date:"Everything is up to date",last_checked:"Last checked {t}",never_checked:"Not checked yet",
+video_ver:"Video support: yt-dlp {v}",video_none:"Video support: not installed",video_updated:"Video support updated to {v}",
+upd_avail:"FastGrab {v} is available",upd_install:"Update to {v}",upd_ready:"Update installed",upd_restart:"Restart FastGrab",upd_restart_d:"Restart to use the new version",upd_open:"Open download page",
+upd_err:"Update problem: {e}",auto_video:"Update video support automatically",auto_video_d:"Video sites change often; this keeps yt-dlp working (checked once a day)",
+auto_app:"Check for new FastGrab versions",auto_app_d:"Shows a notice when a new version is out on GitHub",
+ext_title:"FastGrab for Chrome and Edge",ext_d:"Catches downloads in your browser automatically and adds \"Download with FastGrab\" to the right-click menu.",
+pair_key:"Pairing key",copy:"Copy",new_key:"New key",open_ext_folder:"Open extension folder",ext_install:"Install the extension (one time)",
+ext_seen:"Extension connected · last used {t}",ext_never:"No extension connected yet",ext_port:"Another program uses port 47821, so the extension can't connect right now",
+ext_steps:["Click <b>Open extension folder</b> below.","In Chrome open <code>chrome://extensions</code> (Edge: <code>edge://extensions</code>).","Turn on <b>Developer mode</b> (top right in Chrome, left side in Edge).","Click <b>Load unpacked</b> and choose the folder that opened.","Click the FastGrab icon in the toolbar, paste the pairing key and click <b>Save</b>."],
+just_now:"just now",min_ago:"{n} min ago",h_ago:"{n} h ago",new_key_t:"New pairing key created",new_key_d:"Paste it into the extension again",
+},
+ar:{f_all:"كل التنزيلات",f_active:"قيد التنزيل",f_completed:"المكتملة",f_stopped:"المتوقفة والفاشلة",categories:"الفئات",f_video:"فيديو",f_audio:"موسيقى",f_archive:"أرشيفات",f_doc:"مستندات",f_app:"برامج",
+total_speed:"السرعة الإجمالية",nothing:"لا يوجد تنزيل الآن",active_n:"{n} نشطة · {c} اتصالات",settings:"الإعدادات",connections:"الاتصالات",download:"تنزيل",
+url_ph:"الصق رابط تنزيل أو رابط فيديو (YouTube، TikTok، Instagram…)",search:"بحث",clear_completed:"مسح المكتملة",
+c_name:"الاسم",c_size:"الحجم",c_progress:"التقدم",c_speed:"السرعة",c_left:"الوقت المتبقي",c_status:"الحالة",
+empty_t:"لا توجد تنزيلات بعد",empty_none:"لا شيء هنا",empty_d:"الصق رابطًا في الأعلى، أو اضغط <kbd>Ctrl</kbd> + <kbd>V</kbd> في أي مكان،<br>أو اسحب رابطًا إلى هذه النافذة.",
+n_items:"{n} عناصر",n_item:"عنصر واحد",conn_map:"خريطة الاتصالات",speed:"السرعة",
+i_status:"الحالة",i_done:"تم تنزيل",i_saved:"حُفظ في",i_source:"المصدر",i_resume:"الاستئناف",i_added:"أُضيف",open_file:"فتح الملف",show_folder:"إظهار في المجلد",
+st_downloading:"قيد التنزيل",st_connecting:"جارٍ الاتصال",st_queued:"في الانتظار",st_scheduled:"مجدول",st_paused:"متوقف مؤقتًا",st_completed:"مكتمل",st_failed:"فشل",
+done:"تم",of:"{a} من {b}",res_yes:"مدعوم (آمن عند الأعطال)",res_no:"غير مدعوم من الخادم",
+conns_live:"{a} من {b} اتصالات نشطة · {s} أجزاء",segments:"{s} أجزاء",conns_n:"{n} اتصالات",streams_av:"مسارا الفيديو والصوت",stream_v:"مسار الفيديو",
+speed_now:"{s} الآن · الأعلى {p}",peak:"الأعلى {p}",
+a_pause:"إيقاف مؤقت",a_hold:"تعليق",a_resume:"استئناف",a_retry:"إعادة المحاولة",a_cancel:"إلغاء وحذف",a_confirm:"انقر مرة أخرى لإلغاء التنزيل وحذف الملف الجزئي",a_open:"فتح الملف",a_folder:"إظهار في المجلد",a_remove:"إزالة من القائمة (يبقى الملف)",a_startnow:"ابدأ الآن (تجاهل الجدول)",
+t_notlink:"ليس رابط تنزيل",t_notlink_d:"يجب أن يبدأ الرابط بـ http:// أو https://",t_started:"بدأ التنزيل",t_added_n:"أُضيفت {n} تنزيلات",t_cantadd:"تعذّرت إضافة التنزيل",
+t_complete:"اكتمل التنزيل",t_failed:"فشل التنزيل",t_action:"تعذّر تنفيذ الإجراء",t_from_browser:"تنزيل من المتصفح",t_folder:"تم تغيير مجلد التنزيل",t_copied:"تم نسخ مفتاح الاقتران",
+drop:"أفلت الرابط لتنزيله",closed_t:"تم إغلاق FastGrab",closed_d:"شغّل FastGrab مرة أخرى للمتابعة. ستُستأنف التنزيلات المتوقفة من حيث توقفت.",restarting:"جارٍ إعادة تشغيل FastGrab…",
+v_title:"تنزيل فيديو",v_getting:"جارٍ جلب معلومات الفيديو من {h}…",v_cant:"تعذّر تنزيل هذا الفيديو",close:"إغلاق",cancel:"إلغاء",quality:"الجودة",v_rights:"نزّل فقط مقاطع الفيديو التي يحق لك حفظها.",
+q_best:"أفضل جودة",q_audio:"صوت فقط",v_started:"بدأ تنزيل الفيديو",v_noffmpeg:"FFmpeg غير متوفر، لذلك في بعض المواقع (مثل YouTube) تأتي الجودات المنخفضة فقط مع الصوت. يختار FastGrab أفضل جودة تتضمن الصوت.",
+v_nojs:"لم يُعثر على بيئة JavaScript (Node.js أو Deno)، لذا قد يفشل YouTube أو يعرض جودات أقل.",v_add:"إضافة دعم الفيديو",v_installing:"جارٍ تثبيت دعم الفيديو… يستغرق ذلك دقيقة تقريبًا.",
+v_need:"التنزيل من YouTube وTikTok وInstagram وX وأكثر من 1000 موقع آخر يحتاج إلى الإضافة المجانية <b>yt-dlp</b> (حوالي 15 ميغابايت).",v_install:"تثبيت دعم الفيديو",v_installed:"تم تثبيت دعم الفيديو",v_installed_d:"يمكنك الآن التنزيل من مواقع الفيديو",
+err_webpage:"هذا الرابط يفتح صفحة ويب وليس ملفًا. ثبّت دعم الفيديو لتنزيل مقاطع الفيديو من المواقع.",
+s_general:"عام",s_schedule:"الجدولة",s_updates:"التحديثات",s_browser:"إضافة المتصفح",
+language:"اللغة",language_d:"لغة نافذة FastGrab",save_to:"حفظ التنزيلات في",save_to_d:"تذهب التنزيلات الجديدة إلى هذا المجلد",change:"تغيير",
+def_conns:"الاتصالات لكل تنزيل",def_conns_d:"8 مناسب لمعظم الخوادم؛ 16 للملفات الكبيرة من الخوادم السريعة",max_active:"عدد التنزيلات في نفس الوقت",max_active_d:"البقية تنتظر في قائمة الانتظار",
+sched_on:"التنزيل في أوقات محددة فقط",sched_on_d:"تنتظر التنزيلات المنتظرة الفترة الزمنية؛ والجارية تتوقف عند انتهائها",sched_from:"الفترة الزمنية",sched_from_d:"مثلًا 02:00–08:00 لإنترنت الليل",
+sched_open:"داخل الفترة الآن: التنزيلات تعمل",sched_closed:"خارج الفترة: التنزيلات الجديدة تنتظر حتى {t}",sched_off:"متوقف: تبدأ التنزيلات فورًا",
+when_done:"عند انتهاء كل التنزيلات",when_done_d:"يُنفَّذ مرة واحدة ثم يعود إلى \"لا تفعل شيئًا\". لديك 60 ثانية للإلغاء.",
+wd_none:"لا تفعل شيئًا",wd_quit:"إغلاق FastGrab",wd_sleep:"وضع الكمبيوتر في السكون",wd_shutdown:"إيقاف تشغيل الكمبيوتر",
+p_sleep:"سيدخل الكمبيوتر في وضع السكون",p_shutdown:"سيتم إيقاف تشغيل الكمبيوتر",p_quit:"سيتم إغلاق FastGrab",p_in:"خلال {s} ثانية — انتهت كل التنزيلات",
+sched_card:"الجدول {a}–{b}",sched_card_wait:"{n} بالانتظار · يبدأ {t}",sched_card_run:"يعمل الآن · حتى {t}",
+check_now:"تحقّق الآن",checking:"جارٍ التحقق…",installing:"جارٍ التثبيت…",up_to_date:"كل شيء محدَّث",last_checked:"آخر تحقق {t}",never_checked:"لم يتم التحقق بعد",
+video_ver:"دعم الفيديو: yt-dlp {v}",video_none:"دعم الفيديو: غير مثبت",video_updated:"تم تحديث دعم الفيديو إلى {v}",
+upd_avail:"يتوفر FastGrab {v}",upd_install:"التحديث إلى {v}",upd_ready:"تم تثبيت التحديث",upd_restart:"إعادة تشغيل FastGrab",upd_restart_d:"أعد التشغيل لاستخدام الإصدار الجديد",upd_open:"فتح صفحة التنزيل",
+upd_err:"مشكلة في التحديث: {e}",auto_video:"تحديث دعم الفيديو تلقائيًا",auto_video_d:"مواقع الفيديو تتغير كثيرًا؛ هذا يبقي yt-dlp يعمل (يُفحص مرة يوميًا)",
+auto_app:"البحث عن إصدارات جديدة من FastGrab",auto_app_d:"يُظهر تنبيهًا عند صدور إصدار جديد على GitHub",
+ext_title:"FastGrab لمتصفح Chrome وEdge",ext_d:"يلتقط التنزيلات في متصفحك تلقائيًا ويضيف \"تنزيل باستخدام FastGrab\" إلى قائمة النقر بزر الماوس الأيمن.",
+pair_key:"مفتاح الاقتران",copy:"نسخ",new_key:"مفتاح جديد",open_ext_folder:"فتح مجلد الإضافة",ext_install:"تثبيت الإضافة (مرة واحدة)",
+ext_seen:"الإضافة متصلة · آخر استخدام {t}",ext_never:"لم تتصل أي إضافة بعد",ext_port:"برنامج آخر يستخدم المنفذ 47821، لذا لا تستطيع الإضافة الاتصال حاليًا",
+ext_steps:["انقر <b>فتح مجلد الإضافة</b> في الأسفل.","في Chrome افتح <code>chrome://extensions</code> (في Edge: <code>edge://extensions</code>).","فعّل <b>وضع المطوّر</b> (أعلى اليمين في Chrome، الجانب الأيسر في Edge).","انقر <b>تحميل الإضافة غير المضغوطة</b> واختر المجلد الذي فُتح.","انقر أيقونة FastGrab في شريط الأدوات، والصق مفتاح الاقتران ثم انقر <b>حفظ</b>."],
+just_now:"الآن",min_ago:"قبل {n} دقيقة",h_ago:"قبل {n} ساعة",new_key_t:"تم إنشاء مفتاح اقتران جديد",new_key_d:"الصقه في الإضافة مرة أخرى",
+},
+he:{f_all:"כל ההורדות",f_active:"בהורדה",f_completed:"הושלמו",f_stopped:"מושהות ונכשלו",categories:"קטגוריות",f_video:"וידאו",f_audio:"מוזיקה",f_archive:"ארכיונים",f_doc:"מסמכים",f_app:"תוכנות",
+total_speed:"מהירות כוללת",nothing:"אין הורדות כרגע",active_n:"{n} פעילות · {c} חיבורים",settings:"הגדרות",connections:"חיבורים",download:"הורדה",
+url_ph:"הדבק קישור להורדה או קישור לווידאו (YouTube,‏ TikTok,‏ Instagram…)",search:"חיפוש",clear_completed:"נקה הושלמו",
+c_name:"שם",c_size:"גודל",c_progress:"התקדמות",c_speed:"מהירות",c_left:"זמן נותר",c_status:"מצב",
+empty_t:"אין הורדות עדיין",empty_none:"אין כאן כלום",empty_d:"הדבק קישור למעלה, לחץ <kbd>Ctrl</kbd> + <kbd>V</kbd> בכל מקום,<br>או גרור קישור לחלון הזה.",
+n_items:"{n} פריטים",n_item:"פריט אחד",conn_map:"מפת חיבורים",speed:"מהירות",
+i_status:"מצב",i_done:"הורד",i_saved:"נשמר ב",i_source:"מקור",i_resume:"המשך",i_added:"נוסף",open_file:"פתח קובץ",show_folder:"הצג בתיקייה",
+st_downloading:"בהורדה",st_connecting:"מתחבר",st_queued:"בתור",st_scheduled:"מתוזמן",st_paused:"מושהה",st_completed:"הושלם",st_failed:"נכשל",
+done:"הסתיים",of:"{a} מתוך {b}",res_yes:"נתמך (בטוח גם בקריסה)",res_no:"השרת לא תומך",
+conns_live:"{a} מתוך {b} חיבורים פעילים · {s} מקטעים",segments:"{s} מקטעים",conns_n:"{n} חיבורים",streams_av:"ערוצי וידאו ושמע",stream_v:"ערוץ וידאו",
+speed_now:"{s} עכשיו · שיא {p}",peak:"שיא {p}",
+a_pause:"השהה",a_hold:"עכב",a_resume:"המשך",a_retry:"נסה שוב",a_cancel:"בטל ומחק",a_confirm:"לחץ שוב כדי לבטל ולמחוק את הקובץ החלקי",a_open:"פתח קובץ",a_folder:"הצג בתיקייה",a_remove:"הסר מהרשימה (הקובץ נשמר)",a_startnow:"התחל עכשיו (התעלם מהתזמון)",
+t_notlink:"זה לא קישור להורדה",t_notlink_d:"קישורים חייבים להתחיל ב-http:// או https://",t_started:"ההורדה התחילה",t_added_n:"נוספו {n} הורדות",t_cantadd:"לא ניתן להוסיף את ההורדה",
+t_complete:"ההורדה הושלמה",t_failed:"ההורדה נכשלה",t_action:"הפעולה נכשלה",t_from_browser:"הורדה מהדפדפן",t_folder:"תיקיית ההורדות שונתה",t_copied:"מפתח הקישור הועתק",
+drop:"שחרר את הקישור כדי להוריד",closed_t:"FastGrab נסגר",closed_d:"הפעל שוב את FastGrab כדי להמשיך. הורדות מושהות ימשיכו מאיפה שעצרו.",restarting:"מפעיל מחדש את FastGrab…",
+v_title:"הורדת וידאו",v_getting:"מקבל פרטי וידאו מ-{h}…",v_cant:"לא ניתן להוריד את הווידאו הזה",close:"סגור",cancel:"ביטול",quality:"איכות",v_rights:"הורד רק סרטונים שמותר לך לשמור.",
+q_best:"האיכות הטובה ביותר",q_audio:"שמע בלבד",v_started:"הורדת הווידאו התחילה",v_noffmpeg:"FFmpeg לא זמין, ולכן באתרים מסוימים (כמו YouTube) רק איכויות נמוכות מגיעות עם קול. FastGrab בוחר את הטובה ביותר שכוללת קול.",
+v_nojs:"לא נמצאה סביבת JavaScript‏ (Node.js או Deno), ולכן YouTube עלול להיכשל או להציע פחות איכויות.",v_add:"הוספת תמיכה בווידאו",v_installing:"מתקין תמיכה בווידאו… זה לוקח כדקה.",
+v_need:"הורדה מ-YouTube,‏ TikTok,‏ Instagram,‏ X ועוד יותר מ-1,000 אתרים דורשת את התוסף החינמי <b>yt-dlp</b> (כ-15 MB).",v_install:"התקן תמיכה בווידאו",v_installed:"התמיכה בווידאו הותקנה",v_installed_d:"עכשיו אפשר להוריד מאתרי וידאו",
+err_webpage:"הקישור הזה פותח דף אינטרנט ולא קובץ. התקן תמיכה בווידאו כדי להוריד סרטונים מאתרים.",
+s_general:"כללי",s_schedule:"תזמון",s_updates:"עדכונים",s_browser:"תוסף לדפדפן",
+language:"שפה",language_d:"השפה של חלון FastGrab",save_to:"שמור הורדות ב",save_to_d:"הורדות חדשות נשמרות בתיקייה הזו",change:"שנה",
+def_conns:"חיבורים לכל הורדה",def_conns_d:"8 מתאים לרוב השרתים; 16 לקבצים גדולים משרתים מהירים",max_active:"הורדות בו-זמנית",max_active_d:"השאר ממתינות בתור",
+sched_on:"הורד רק בשעות מסוימות",sched_on_d:"הורדות בתור ממתינות לחלון הזמן; הורדות פעילות מושהות כשהוא נגמר",sched_from:"חלון זמן",sched_from_d:"למשל 02:00–08:00 לאינטרנט לילי",
+sched_open:"בתוך החלון עכשיו: ההורדות רצות",sched_closed:"מחוץ לחלון: הורדות חדשות ממתינות עד {t}",sched_off:"כבוי: הורדות מתחילות מיד",
+when_done:"כשכל ההורדות מסתיימות",when_done_d:"פועל פעם אחת ואז חוזר ל\"אל תעשה כלום\". יש לך 60 שניות לבטל.",
+wd_none:"אל תעשה כלום",wd_quit:"סגור את FastGrab",wd_sleep:"העבר את המחשב למצב שינה",wd_shutdown:"כבה את המחשב",
+p_sleep:"המחשב יעבור למצב שינה",p_shutdown:"המחשב ייכבה",p_quit:"FastGrab ייסגר",p_in:"בעוד {s} שניות — כל ההורדות הסתיימו",
+sched_card:"תזמון {a}–{b}",sched_card_wait:"{n} ממתינות · מתחיל ב-{t}",sched_card_run:"פועל עכשיו · עד {t}",
+check_now:"בדוק עכשיו",checking:"בודק…",installing:"מתקין…",up_to_date:"הכול מעודכן",last_checked:"נבדק לאחרונה {t}",never_checked:"עדיין לא נבדק",
+video_ver:"תמיכה בווידאו: yt-dlp {v}",video_none:"תמיכה בווידאו: לא מותקנת",video_updated:"התמיכה בווידאו עודכנה ל-{v}",
+upd_avail:"FastGrab {v} זמין",upd_install:"עדכן ל-{v}",upd_ready:"העדכון הותקן",upd_restart:"הפעל מחדש את FastGrab",upd_restart_d:"הפעל מחדש כדי להשתמש בגרסה החדשה",upd_open:"פתח את דף ההורדה",
+upd_err:"בעיה בעדכון: {e}",auto_video:"עדכן תמיכה בווידאו אוטומטית",auto_video_d:"אתרי וידאו משתנים לעיתים קרובות; זה שומר על yt-dlp עובד (נבדק פעם ביום)",
+auto_app:"בדוק אם יש גרסאות חדשות של FastGrab",auto_app_d:"מציג הודעה כשיוצאת גרסה חדשה ב-GitHub",
+ext_title:"FastGrab ל-Chrome ול-Edge",ext_d:"תופס הורדות בדפדפן אוטומטית ומוסיף \"הורד עם FastGrab\" לתפריט הלחיצה הימנית.",
+pair_key:"מפתח קישור",copy:"העתק",new_key:"מפתח חדש",open_ext_folder:"פתח את תיקיית התוסף",ext_install:"התקנת התוסף (פעם אחת)",
+ext_seen:"התוסף מחובר · שימוש אחרון {t}",ext_never:"עדיין לא התחבר תוסף",ext_port:"תוכנה אחרת משתמשת בפורט 47821, ולכן התוסף לא יכול להתחבר כרגע",
+ext_steps:["לחץ על <b>פתח את תיקיית התוסף</b> למטה.","ב-Chrome פתח את <code>chrome://extensions</code> (ב-Edge:‏ <code>edge://extensions</code>).","הפעל את <b>מצב מפתח</b> (למעלה בצד ימין ב-Chrome, בצד שמאל ב-Edge).","לחץ על <b>טעינת פריט לא ארוז</b> ובחר את התיקייה שנפתחה.","לחץ על הסמל של FastGrab בסרגל הכלים, הדבק את מפתח הקישור ולחץ <b>שמור</b>."],
+just_now:"עכשיו",min_ago:"לפני {n} דק׳",h_ago:"לפני {n} שע׳",new_key_t:"נוצר מפתח קישור חדש",new_key_d:"הדבק אותו שוב בתוסף",
+}};
+let LANG = "en";
+function t(key, vars){ let s = (I18N[LANG]||I18N.en)[key]; if (s===undefined) s = I18N.en[key]; if (s===undefined) return key;
+  if (vars && typeof s==="string") s = s.replace(/\{(\w+)\}/g,(m,k)=> vars[k]!==undefined ? vars[k] : m); return s; }
+function applyLang(lang){
+  if (!I18N[lang]) lang = "en";
+  const changed = lang !== LANG; LANG = lang;
+  document.documentElement.lang = lang;
+  document.documentElement.dir = (lang==="ar"||lang==="he") ? "rtl" : "ltr";
+  document.querySelectorAll("[data-t]").forEach(el => { el.innerHTML = t(el.dataset.t); });
+  $("#url").placeholder = t("url_ph"); $("#q").placeholder = t("search");
+  $("#drop").textContent = t("drop");
+  $("#e-steps").innerHTML = t("ext_steps").map(s=>`<li>${s}</li>`).join("");
+  if (changed){ rowEls.forEach(el => el.dataset.sig=""); }
+  setFilter(filter, true); positionSeg($("#langseg")); positionTab();
+}
+
+/* ================================================================== helpers */
 const TOKEN = new URLSearchParams(location.search).get("t") || "";
 const $ = s => document.querySelector(s);
 const PALETTE = ["#8b5cf6","#22d3ee","#f472b6","#34d399","#fbbf24","#60a5fa","#fb7185","#a3e635",
@@ -296,26 +596,33 @@ const TYPES = {
   app:{ext:"exe msi dmg pkg deb rpm apk appimage iso img",color:"#34d399",label:"APP"},
   image:{ext:"jpg jpeg png gif webp svg bmp heic",color:"#22d3ee",label:"IMG"},
 };
-let state = {items:[], settings:{}}, filter = "all", selected = null, query = "";
-const hist = {};               // id -> [speed samples] for the graph
-const seenStatus = {};         // id -> last status (for toasts)
-const rowEls = new Map();      // id -> row element
+const VIDEO_HOSTS = ["youtube.com","youtu.be","tiktok.com","instagram.com","facebook.com","fb.watch","x.com","twitter.com","reddit.com","redd.it","vimeo.com","twitch.tv","soundcloud.com","dailymotion.com","dai.ly","pinterest.com","pin.it","threads.net","threads.com","linkedin.com","bilibili.com","streamable.com","kick.com","rumble.com","snapchat.com","bandcamp.com","ted.com"];
+const QKEYS = {best:"q_best",audio:"q_audio"}, QLBL = {"2160":"4K","1440":"1440p","1080":"1080p","720":"720p","480":"480p","360":"360p"};
+const qlabel = c => QLBL[c] || t(QKEYS[c]||c);
+let state = {items:[], settings:{}, video:{}, update:{app:{},video:{}}, power:{}, events:[]};
+let filter = "all", selected = null, query = "";
+const hist = {}, seenStatus = {}, rowEls = new Map();
+let seenEvents = null, firstVersion = null, restarting = false;
 
-/* ---------- helpers ---------- */
 function api(path, body){
   const opt = {headers:{"X-Token":TOKEN}};
   if (body !== undefined){ opt.method="POST"; opt.headers["Content-Type"]="application/json"; opt.body=JSON.stringify(body); }
   return fetch(path, opt).then(async r => { const j = await r.json().catch(()=>({})); if(!r.ok) throw new Error(j.error||r.statusText); return j; });
 }
 function fmtSize(n){ if(n==null) return "—"; const u=["B","KB","MB","GB","TB"]; let i=0; while(n>=1024&&i<u.length-1){n/=1024;i++} return (i?n.toFixed(n<10?2:1):Math.round(n))+" "+u[i]; }
-function fmtTime(s){ if(s==null||!isFinite(s)) return "—"; s=Math.round(s); if(s<60) return s+"s"; const m=Math.floor(s/60); if(m<60) return m+"m "+String(s%60).padStart(2,"0")+"s"; return Math.floor(m/60)+"h "+String(m%60).padStart(2,"0")+"m"; }
+function fmtTime(s){ if(s==null||!isFinite(s)) return "—"; s=Math.max(0,Math.round(s)); const h=Math.floor(s/3600), m=Math.floor(s/60)%60, x=String(s%60).padStart(2,"0"); return h ? `${h}:${String(m).padStart(2,"0")}:${x}` : `${m}:${x}`; }
+function ago(ts){ const d=(Date.now()/1000-ts)/60; return d<1 ? t("just_now") : d<60 ? t("min_ago",{n:Math.round(d)}) : t("h_ago",{n:Math.round(d/60)}); }
+const B = s => `<bdi>${esc(s)}</bdi>`;     // keeps "12.0 MB" intact inside Arabic/Hebrew sentences
+function locale(){ return LANG==="ar" ? "ar-u-nu-latn" : LANG; }
 function ext(name){ const m=/\.([a-z0-9]{1,9})$/i.exec(name||""); return m?m[1].toLowerCase():""; }
 function kind(name){ const e=ext(name); for(const k in TYPES) if(TYPES[k].ext.split(" ").includes(e)) return k; return "other"; }
+function cat(it){ if (it.kind==="video") return it.choice==="audio" ? "audio" : "video"; return kind(it.filename); }
 function host(url){ try{return new URL(url).host}catch{return url} }
 function esc(s){ return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
-const VIDEO_HOSTS = ["youtube.com","youtu.be","tiktok.com","instagram.com","facebook.com","fb.watch","x.com","twitter.com","reddit.com","redd.it","vimeo.com","twitch.tv","soundcloud.com","dailymotion.com","dai.ly","pinterest.com","pin.it","threads.net","threads.com","linkedin.com","bilibili.com","streamable.com","kick.com","rumble.com","snapchat.com","bandcamp.com","ted.com"];
 function isVideoLink(u){ try{ const h=new URL(u).hostname.toLowerCase(); return VIDEO_HOSTS.some(v=>h===v||h.endsWith("."+v)); }catch{ return false; } }
-function cat(it){ if (it.kind==="video") return it.choice==="audio" ? "audio" : "video"; return kind(it.filename); }
+function waiting(it){ return it.status==="queued" && !it.force && state.schedule_open===false; }
+function statusKey(it){ return waiting(it) ? "scheduled" : it.status; }
+function msgText(m){ return m==="webpage" ? t("err_webpage") : m; }
 function matches(it){
   const k = cat(it);
   const f = filter==="all" || (filter==="active" && ["downloading","connecting","queued"].includes(it.status))
@@ -324,66 +631,69 @@ function matches(it){
   return f && (!query || (it.filename||"").toLowerCase().includes(query) || it.url.toLowerCase().includes(query));
 }
 const ICONS = {
-  pause:'<path d="M9 6v12M15 6v12"/>',
-  play:'<path d="M8 5.5v13l10.5-6.5z"/>',
-  x:'<path d="M6 6l12 12M18 6 6 18"/>',
+  pause:'<path d="M9 6v12M15 6v12"/>', play:'<path d="M8 5.5v13l10.5-6.5z"/>', x:'<path d="M6 6l12 12M18 6 6 18"/>',
   folder:'<path d="M3 7.5A2.5 2.5 0 0 1 5.5 5H9l2 2h7.5A2.5 2.5 0 0 1 21 9.5v7a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 16.5z"/>',
   open:'<path d="M14 4h6v6M20 4l-9 9M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4"/>',
   trash:'<path d="M4 7h16M10 11v6m4-6v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/>',
-  retry:'<path d="M4 12a8 8 0 1 0 2.4-5.7L4 8.5M4 4v4.5h4.5"/>',
+  retry:'<path d="M4 12a8 8 0 1 0 2.4-5.7L4 8.5M4 4v4.5h4.5"/>', bolt:'<path d="M13 3 5 14h6l-1 7 8-11h-6z"/>',
+  globe:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>',
 };
-const ib = (act,icon,title,cls="") => `<button class="ib ${cls}" data-act="${act}" title="${title}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${ICONS[icon]}</svg></button>`;
+const svg = (p, w=1.9) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
+const ib = (act,icon,title,cls="") => `<button class="ib ${cls}" data-act="${act}" title="${esc(t(title))}">${svg(ICONS[icon])}</button>`;
 function actionsFor(it){
+  if (waiting(it)) return ib("start-now","bolt","a_startnow")+ib("pause","pause","a_hold")+ib("cancel","x","a_cancel","danger");
   switch(it.status){
-    case "downloading": case "connecting": return ib("pause","pause","Pause")+ib("cancel","x","Cancel and delete","danger");
-    case "queued": return ib("pause","pause","Hold")+ib("cancel","x","Cancel","danger");
-    case "paused": return ib("resume","play","Resume")+ib("cancel","x","Cancel and delete","danger");
-    case "failed": return ib("resume","retry","Retry")+ib("cancel","x","Cancel and delete","danger");
-    case "completed": return ib("open","open","Open file")+ib("folder","folder","Show in folder")+ib("remove","trash","Remove from list (keeps the file)");
+    case "downloading": case "connecting": return ib("pause","pause","a_pause")+ib("cancel","x","a_cancel","danger");
+    case "queued": return ib("pause","pause","a_hold")+ib("cancel","x","a_cancel","danger");
+    case "paused": return ib("resume","play","a_resume")+ib("cancel","x","a_cancel","danger");
+    case "failed": return ib("resume","retry","a_retry")+ib("cancel","x","a_cancel","danger");
+    case "completed": return ib("open","open","a_open")+ib("folder","folder","a_folder")+ib("remove","trash","a_remove");
   }
   return "";
 }
-const STATUS_TEXT = {downloading:"Downloading",connecting:"Connecting",queued:"Queued",paused:"Paused",completed:"Completed",failed:"Failed"};
 
-/* ---------- rendering ---------- */
+/* ================================================================ rendering */
 function renderRow(it){
   let el = rowEls.get(it.id);
-  const k = cat(it), t = TYPES[k] || {color:"#9097a8",label:(ext(it.filename)||"FILE").slice(0,4).toUpperCase()};
+  const k = cat(it), tp = TYPES[k] || {color:"#9097a8",label:(ext(it.filename)||"FILE").slice(0,4).toUpperCase()};
   const pct = it.size ? Math.min(100, it.downloaded/it.size*100) : (it.status==="completed"?100:0);
-  const live = it.status==="downloading";
-  const sig = [it.status, it.filename, it.kind, it.site].join("|");
+  const live = it.status==="downloading", sk = statusKey(it);
+  const sig = [sk, it.filename, it.kind, it.site, it.source, LANG].join("|");
   if (!el){
     el = document.createElement("div");
     el.className = "row"; el.dataset.id = it.id;
-    el.innerHTML = `<div class="name"><div class="ficon"></div><div class="t"><div class="fn"></div><div class="host"></div></div></div>
-      <div class="num sz"></div><div class="prog"><div class="bar"><i></i></div><div class="pct"></div></div>
-      <div class="num spd"></div><div class="num eta"></div><div><span class="pill"></span></div><div class="acts"></div>`;
+    el.innerHTML = `<div class="name"><div class="ficon"></div><div class="t"><div class="fn" dir="auto"></div><div class="host" dir="auto"></div></div></div>
+      <div class="num sz ltr"></div><div class="prog"><div class="bar"><i></i></div><div class="pct ltr"></div></div>
+      <div class="num spd ltr"></div><div class="num eta ltr"></div><div><span class="pill"></span></div><div class="acts"></div>`;
     rowEls.set(it.id, el);
   }
   if (el.dataset.sig !== sig){
     el.dataset.sig = sig;
     const fi = el.querySelector(".ficon");
-    fi.textContent = t.label; fi.style.color = t.color; fi.style.background = t.color+"22";
+    fi.innerHTML = esc(tp.label) + (it.source==="browser" ? `<span class="from">${svg(ICONS.globe,2.4)}</span>` : "");
+    fi.style.color = tp.color; fi.style.background = tp.color+"22";
     el.querySelector(".fn").textContent = it.filename; el.querySelector(".fn").title = it.filename;
-    el.querySelector(".host").textContent = it.kind==="video" ? `${it.site||host(it.url)} · ${QLABEL[it.choice]||it.choice}` : host(it.url);
-    const pill = el.querySelector(".pill"); pill.className = "pill "+it.status; pill.textContent = STATUS_TEXT[it.status]||it.status;
-    pill.title = it.message || "";
+    const sched = state.settings.schedule || {};
+    el.querySelector(".host").textContent = it.kind==="video" ? `${it.site||host(it.url)} · ${qlabel(it.choice)}`
+      : waiting(it) ? `${host(it.url)} · ${sched.start}` : host(it.url);
+    const pill = el.querySelector(".pill"); pill.className = "pill "+sk; pill.textContent = t("st_"+sk);
+    pill.title = msgText(it.message || "");
     el.querySelector(".acts").innerHTML = actionsFor(it);
   }
   el.querySelector(".sz").textContent = fmtSize(it.size);
   const bar = el.querySelector(".bar");
-  bar.className = "bar" + (it.status==="completed"?" done":it.status==="paused"?" paused":it.status==="failed"?" failed":"") + (live?" live":"");
+  bar.className = "bar" + (it.status==="completed"?" done":it.status==="paused"?" paused":it.status==="failed"?" failed":waiting(it)?" waiting":"") + (live?" live":"");
   bar.firstElementChild.style.width = pct.toFixed(2)+"%";
   el.querySelector(".pct").textContent = it.size ? `${pct.toFixed(1)}%  ·  ${fmtSize(it.downloaded)}` : fmtSize(it.downloaded);
   el.querySelector(".spd").textContent = live ? fmtSize(it.speed)+"/s" : "—";
-  el.querySelector(".eta").textContent = live ? fmtTime(it.eta) : (it.status==="completed" ? "Done" : "—");
+  el.querySelector(".eta").textContent = live ? fmtTime(it.eta) : (it.status==="completed" ? t("done") : "—");
   el.classList.toggle("sel", it.id === selected);
   return el;
 }
 
-function render(){
+const counts = {};
+function render(stagger){
   const items = state.items;
-  // counts
   const c = {all:items.length, active:0, completed:0, stopped:0, video:0, audio:0, archive:0, doc:0, app:0};
   for (const it of items){
     if (["downloading","connecting","queued"].includes(it.status)) c.active++;
@@ -391,26 +701,42 @@ function render(){
     if (["paused","failed"].includes(it.status)) c.stopped++;
     const k = cat(it); if (k in c) c[k]++;
   }
-  for (const k in c){ const e=$("#n-"+k); if(e) e.textContent=c[k]; }
-  // total speed
+  for (const k in c){ const e=$("#n-"+k); if(!e) continue; if (counts[k]!==undefined && counts[k]!==c[k]){ e.classList.remove("bump"); void e.offsetWidth; e.classList.add("bump"); } counts[k]=c[k]; e.textContent=c[k]; }
   const running = items.filter(i=>i.status==="downloading");
-  const total = running.reduce((a,i)=>a+(i.speed||0),0);
-  $("#tspeed").textContent = fmtSize(total)+"/s";
-  $("#tsub").textContent = running.length ? (n => `${running.length} active · ${n} connection${n===1?"":"s"}`)(running.reduce((a,i)=>a+(i.active||0),0)) : "Nothing downloading";
-  document.title = running.length ? `${fmtSize(total)}/s · FastGrab` : "FastGrab";
-  // rows
-  const list = $("#rows"), shown = items.filter(matches);
-  const keep = new Set(items.map(i=>i.id));
-  for (const [id,el] of rowEls) if (!keep.has(id)){ el.remove(); rowEls.delete(id); }
-  shown.forEach((it,i) => { const el = renderRow(it); if (list.children[i] !== el) list.insertBefore(el, list.children[i] || null); });
-  for (const el of [...list.children]) if (!shown.some(i=>i.id===el.dataset.id)) el.remove();
+  speedTarget = running.reduce((a,i)=>a+(i.speed||0),0);
+  const conns = running.reduce((a,i)=>a+(i.active||0),0);
+  $("#tsub").innerHTML = running.length ? t("active_n",{n:B(running.length),c:B(conns)}) : esc(t("nothing"));
+  document.title = running.length ? `${fmtSize(speedTarget)}/s · FastGrab` : "FastGrab";
+  // rows (removed rows slide out)
+  const list = $("#rows"), shown = items.filter(matches), keep = new Set(items.map(i=>i.id));
+  for (const [id,el] of rowEls) if (!keep.has(id)){ rowEls.delete(id); leave(el); }
+  shown.forEach((it,i) => { const el = renderRow(it); if (stagger) { el.style.setProperty("--i", i); el.style.animation="none"; void el.offsetWidth; el.style.animation=""; }
+    const live = [...list.children].filter(x=>!x.classList.contains("leaving"));
+    if (live[i] !== el) list.insertBefore(el, live[i] || null); });
+  for (const el of [...list.children]) if (!el.classList.contains("leaving") && !shown.some(i=>i.id===el.dataset.id)) leave(el);
   $("#empty").style.display = shown.length ? "none" : "grid";
   $("#rows").style.display = shown.length ? "block" : "none";
-  $("#empty h3").textContent = items.length ? "Nothing here" : "No downloads yet";
-  $("#hint").textContent = shown.length ? `${shown.length} item${shown.length>1?"s":""}` : "";
+  $("#emptyTitle").textContent = items.length ? t("empty_none") : t("empty_t");
+  $("#emptyText").innerHTML = t("empty_d");
+  $("#hint").textContent = shown.length ? (shown.length===1 ? t("n_item") : t("n_items",{n:shown.length})) : "";
   if (selected && !keep.has(selected)) selected = null;
   if (!selected && shown.length) selected = shown[0].id;
-  renderDetails();
+  renderSide(); renderDetails();
+}
+function leave(el){ if (el.classList.contains("leaving")) return; el.style.height = el.offsetHeight+"px"; void el.offsetWidth; el.classList.add("leaving"); setTimeout(()=>el.remove(), 320); }
+
+function renderSide(){
+  const sc = state.settings.schedule || {}, wait = state.items.filter(waiting).length;
+  $("#schedcard").classList.toggle("on", !!sc.enabled);
+  if (sc.enabled){
+    $("#schedtitle").innerHTML = `<span class="ltr">${esc(t("sched_card",{a:sc.start,b:sc.stop}))}</span>`;
+    $("#schedsub").textContent = state.schedule_open ? t("sched_card_run",{t:sc.stop}) : t("sched_card_wait",{n:wait,t:sc.start});
+  }
+  const u = state.update||{}, a = u.app||{};
+  const show = u.restart_needed || a.available;
+  $("#updcard").classList.toggle("on", !!show);
+  if (u.restart_needed){ $("#updtitle").textContent = a.installed ? t("upd_ready") : t("video_updated",{v:(u.video||{}).updated_to||""}); $("#updsub").textContent = t("upd_restart_d"); $("#updbtn").textContent = t("upd_restart"); $("#updbtn").onclick = restartApp; }
+  else if (a.available){ $("#updtitle").textContent = t("upd_avail",{v:a.latest}); $("#updsub").textContent = ""; $("#updbtn").textContent = u.busy==="installing" ? t("installing") : t("upd_install",{v:a.latest}); $("#updbtn").onclick = installUpdate; }
 }
 
 function renderDetails(){
@@ -418,59 +744,72 @@ function renderDetails(){
   $("#details").classList.toggle("hide", !it);
   if (!it) return;
   $("#d-name").textContent = it.filename;
-  const th = $("#d-thumb"); if (it.thumbnail){ if (th.src!==it.thumbnail) th.src=it.thumbnail; th.style.display="block"; } else th.style.display="none";
   $("#d-sub").textContent = it.size ? fmtSize(it.size) : "";
-  $("#d-status").textContent = (STATUS_TEXT[it.status]||it.status) + (it.message && it.status!=="completed" && it.status!=="downloading" ? " — "+it.message : "");
-  $("#d-done").textContent = it.size ? `${fmtSize(it.downloaded)} of ${fmtSize(it.size)}` : fmtSize(it.downloaded);
+  const th = $("#d-thumb"); if (it.thumbnail){ if (th.src!==it.thumbnail) th.src=it.thumbnail; th.style.display="block"; } else th.style.display="none";
+  const sk = statusKey(it);
+  $("#d-status").textContent = t("st_"+sk) + (it.message && !["completed","downloading"].includes(it.status) ? " — "+msgText(it.message) : "");
+  $("#d-status").title = msgText(it.message||"");
+  $("#d-done").innerHTML = it.size ? t("of",{a:B(fmtSize(it.downloaded)),b:B(fmtSize(it.size))}) : B(fmtSize(it.downloaded));
   $("#d-dir").textContent = it.out_dir; $("#d-dir").title = it.out_dir;
   $("#d-url").textContent = it.url; $("#d-url").title = it.url;
-  $("#d-res").textContent = it.resumable==null ? "—" : it.resumable ? "Supported (crash-safe)" : "Not supported by server";
-  $("#d-added").textContent = new Date(it.added*1000).toLocaleString();
+  $("#d-res").textContent = it.resumable==null ? "—" : it.resumable ? t("res_yes") : t("res_no");
+  $("#d-added").textContent = new Date(it.added*1000).toLocaleString(locale());
   $("#d-open").disabled = $("#d-folder").disabled = it.status!=="completed";
   const live = it.status==="downloading";
-  $("#d-conns").textContent = it.kind==="video" ? (it.segments.length>1 ? "video and audio streams" : "video stream") + (it.message ? " · "+it.message : "")
-    : live ? `${it.active} of ${it.connections} connections active · ${it.segments.length} segments`
-    : it.segments.length ? `${it.segments.length} segments` : `${it.connections} connections`;
-  const h = hist[it.id] || [];
-  const peak = Math.max(0,...h);
-  $("#d-speed").textContent = live ? `${fmtSize(it.speed)}/s now · peak ${fmtSize(peak)}/s` : (peak ? `peak ${fmtSize(peak)}/s` : "");
-  drawSegments(it); drawGraph(h);
+  $("#d-conns").innerHTML = it.kind==="video" ? esc(t(it.segments.length>1?"streams_av":"stream_v") + (it.message ? " · "+it.message : ""))
+    : live ? t("conns_live",{a:B(it.active),b:B(it.connections),s:B(it.segments.length)})
+    : it.segments.length ? t("segments",{s:B(it.segments.length)}) : t("conns_n",{n:B(it.connections)});
+  const h = hist[it.id] || [], peak = Math.max(0,...h);
+  $("#d-speed").innerHTML = live ? t("speed_now",{s:B(fmtSize(it.speed)+"/s"),p:B(fmtSize(peak)+"/s")}) : (peak ? t("peak",{p:B(fmtSize(peak)+"/s")}) : "");
+  segTarget = it; drawGraph(h);
 }
 
-function setupCanvas(cv){
+/* ---- canvases (the connections map is animated at 60 fps between updates) */
+function setupCanvas(cv, mirror){
   const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio||1;
   if (cv.width !== Math.round(r.width*dpr) || cv.height !== Math.round(r.height*dpr)){ cv.width=Math.round(r.width*dpr); cv.height=Math.round(r.height*dpr); }
   const ctx = cv.getContext("2d"); ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,r.width,r.height);
+  if (mirror && document.documentElement.dir==="rtl"){ ctx.translate(r.width,0); ctx.scale(-1,1); }   // fill right-to-left
   return [ctx, r.width, r.height];
 }
 function roundRect(ctx,x,y,w,h,r){ ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x,y,w,h,r) : ctx.rect(x,y,w,h); }
-
-function drawSegments(it){
-  const [ctx,W,H] = setupCanvas($("#segs"));
+let segTarget = null, segShown = {id:null, segs:[]}, lastDraw = 0;
+function animSegments(now){
+  const it = segTarget;
+  if (it && !$("#details").classList.contains("hide")){
+    if (segShown.id !== it.id) segShown = {id:it.id, segs:it.segments.map(s=>[...s])};
+    const k = Math.min(1, (now-lastDraw)/140);              // ease each frame toward the latest numbers
+    const tgt = it.segments;
+    segShown.segs = tgt.map((s,i)=>{ const o = segShown.segs.find(x=>x[0]===s[0]) || [s[0],s[0],s[2],s[3]];
+      return [s[0], o[1] + (s[1]-o[1])*k, o[2] + (s[2]-o[2])*k, s[3]]; });
+    drawSegments(it, segShown.segs, now);
+  }
+  lastDraw = now; requestAnimationFrame(animSegments);
+}
+function drawSegments(it, segs, now){
+  const [ctx,W,H] = setupCanvas($("#segs"), true);
   roundRect(ctx,0,0,W,H,8); ctx.fillStyle="rgba(255,255,255,.05)"; ctx.fill();
   ctx.save(); roundRect(ctx,0,0,W,H,8); ctx.clip();
   const size = it.size;
   if (it.status==="completed"){
     const g = ctx.createLinearGradient(0,0,W,0); g.addColorStop(0,"#34d399"); g.addColorStop(1,"#10b981");
     ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
-  } else if (size && it.segments.length){
-    for (const [start,pos,end,owner] of it.segments){
+  } else if (size && segs.length){
+    for (const [start,pos,end,owner] of segs){
       const x0 = start/size*W, x1 = pos/size*W, xe = end/size*W;
       const col = owner>=0 ? PALETTE[owner%PALETTE.length] : "#6b7280";
-      ctx.fillStyle = col+"26"; ctx.fillRect(x0,0,xe-x0,H);          // reserved range
-      ctx.fillStyle = col; ctx.fillRect(x0,0,Math.max(0,x1-x0),H);    // downloaded part
-      if (pos<end && owner>=0 && it.status==="downloading"){          // glowing write head
-        const g = ctx.createLinearGradient(x1-14,0,x1+2,0); g.addColorStop(0,col+"00"); g.addColorStop(1,"rgba(255,255,255,.75)");
-        ctx.fillStyle=g; ctx.fillRect(x1-14,0,16,H);
+      ctx.fillStyle = col+"26"; ctx.fillRect(x0,0,xe-x0,H);
+      ctx.fillStyle = col; ctx.fillRect(x0,0,Math.max(0,x1-x0),H);
+      if (pos<end && owner>=0 && it.status==="downloading"){
+        const pulse = .55 + .25*Math.sin(now/180 + owner);
+        const g = ctx.createLinearGradient(x1-16,0,x1+2,0); g.addColorStop(0,col+"00"); g.addColorStop(1,`rgba(255,255,255,${pulse})`);
+        ctx.fillStyle=g; ctx.fillRect(x1-16,0,18,H);
       }
-      ctx.fillStyle="rgba(7,8,13,.85)"; ctx.fillRect(xe-1,0,1.5,H);   // boundary
+      ctx.fillStyle="rgba(7,8,13,.85)"; ctx.fillRect(xe-1,0,1.5,H);
     }
-  } else if (size){
-    ctx.fillStyle="#8b5cf6"; ctx.fillRect(0,0,it.downloaded/size*W,H);
-  }
+  } else if (size){ ctx.fillStyle="#8b5cf6"; ctx.fillRect(0,0,it.downloaded/size*W,H); }
   ctx.restore();
 }
-
 function drawGraph(h){
   const [ctx,W,H] = setupCanvas($("#graph"));
   ctx.strokeStyle="rgba(255,255,255,.06)"; ctx.lineWidth=1;
@@ -481,82 +820,109 @@ function drawGraph(h){
   const trace = () => { ctx.beginPath(); pts.forEach(([x,y],i)=> i?ctx.lineTo(x,y):ctx.moveTo(x,y)); };
   trace(); ctx.lineTo(pts[pts.length-1][0],H); ctx.lineTo(pts[0][0],H); ctx.closePath();
   const g = ctx.createLinearGradient(0,0,0,H); g.addColorStop(0,"rgba(139,92,246,.45)"); g.addColorStop(1,"rgba(34,211,238,0)");
-  ctx.fillStyle=g; ctx.fill();
-  trace();
+  ctx.fillStyle=g; ctx.fill(); trace();
   const lg = ctx.createLinearGradient(0,0,W,0); lg.addColorStop(0,"#8b5cf6"); lg.addColorStop(1,"#22d3ee");
   ctx.strokeStyle=lg; ctx.lineWidth=2; ctx.lineJoin="round"; ctx.stroke();
+  const [lx,ly] = pts[pts.length-1]; ctx.fillStyle="#22d3ee"; ctx.beginPath(); ctx.arc(lx,ly,3,0,7); ctx.fill();
 }
+// total speed counts smoothly to its new value
+let speedTarget = 0, speedShown = 0;
+function animSpeed(){ speedShown += (speedTarget-speedShown)*(speedTarget ? 0.12 : 0.25); if (Math.abs(speedTarget-speedShown) < Math.max(1024, speedTarget*0.005)) speedShown=speedTarget; $("#tspeed").textContent = fmtSize(speedShown)+"/s"; requestAnimationFrame(animSpeed); }
 
-/* ---------- toasts ---------- */
+/* =================================================================== toasts */
 function toast(title, text, color){
-  const t = document.createElement("div"); t.className="toast";
-  t.innerHTML = `<div class="dot" style="background:${color}"></div><div><b>${esc(title)}</b><span>${esc(text)}</span></div>`;
-  $("#toasts").appendChild(t);
-  setTimeout(()=>{ t.classList.add("out"); setTimeout(()=>t.remove(),260); }, 4200);
+  const el = document.createElement("div"); el.className="toast";
+  el.innerHTML = `<div class="dot" style="background:${color}"></div><div><b>${esc(title)}</b><span>${esc(text||"")}</span></div>`;
+  $("#toasts").appendChild(el);
+  setTimeout(()=>{ el.classList.add("out"); setTimeout(()=>el.remove(),300); }, 4200);
 }
 
-/* ---------- polling ---------- */
+/* ================================================================== polling */
 let failures = 0;
 async function poll(){
-  try{
-    state = await api("/api/state"); failures = 0; $("#offline").classList.remove("on");
-    $("#ver").textContent = "v"+state.version;
-    if (document.activeElement !== $("#dir")) $("#dir").value = state.settings.dir || "";
-    for (const it of state.items){
-      const h = hist[it.id] || (hist[it.id]=[]);
-      if (it.status==="downloading"){ h.push(it.speed||0); if (h.length>120) h.shift(); }
-      const prev = seenStatus[it.id];
-      if (prev && prev!==it.status){
-        if (it.status==="completed") toast("Download complete", it.filename, "#34d399");
-        if (it.status==="failed") toast("Download failed", it.message || it.filename, "#f87171");
-      }
-      seenStatus[it.id] = it.status;
+  let s;
+  try { s = await api("/api/state"); }
+  catch(e){ if (++failures>=4 && !restarting) $("#offline").classList.add("on"); return; }
+  if (failures && restarting){ location.reload(); return; }       // back after a restart
+  failures = 0; $("#offline").classList.remove("on");
+  if (firstVersion===null) firstVersion = s.version;
+  else if (s.version !== firstVersion){ location.reload(); return; } // updated: load the new interface
+  state = s;
+  if (state.settings.lang !== LANG) applyLang(state.settings.lang);
+  $("#ver").textContent = "v"+state.version;
+  for (const it of state.items){
+    const h = hist[it.id] || (hist[it.id]=[]);
+    if (it.status==="downloading"){ h.push(it.speed||0); if (h.length>120) h.shift(); }
+    const prev = seenStatus[it.id];
+    if (prev && prev!==it.status){
+      if (it.status==="completed"){ toast(t("t_complete"), it.filename, "#34d399"); const el=rowEls.get(it.id); if(el){ el.classList.remove("celebrate"); void el.offsetWidth; el.classList.add("celebrate"); } }
+      if (it.status==="failed") toast(t("t_failed"), msgText(it.message) || it.filename, "#f87171");
     }
-    render(); watchInstall();
-  }catch(e){ if (++failures>=4) $("#offline").classList.add("on"); }
+    seenStatus[it.id] = it.status;
+  }
+  handleEvents();
+  render(); renderPower(); watchInstall();
+  if ($("#smodal").classList.contains("on")) renderSettings();
+}
+function handleEvents(){
+  const evs = state.events || [];
+  if (seenEvents===null){ seenEvents = new Set(evs.map(e=>e.id)); return; }
+  for (const e of evs){
+    if (seenEvents.has(e.id)) continue;
+    seenEvents.add(e.id);
+    if (e.type==="video") openVideo(e.url);
+    if (e.type==="added"){ const it = state.items.find(i=>i.id===e.item); toast(t("t_from_browser"), it ? it.filename : "", "#60a5fa"); selected = e.item; }
+  }
+}
+function renderPower(){
+  const p = state.power || {};
+  $("#powerbar").classList.toggle("on", !!p.action);
+  if (p.action){ $("#pcd").textContent = p.seconds; $("#ptext").textContent = `${t("p_"+p.action)} ${t("p_in",{s:p.seconds})}`; }
 }
 
-/* ---------- actions ---------- */
+/* ================================================================== actions */
 async function add(text){
   const urls = String(text||"").split(/\s+/).filter(u=>/^https?:\/\//i.test(u));
-  if (!urls.length){ toast("Not a download link","Links must start with http:// or https://","#fbbf24"); return; }
+  if (!urls.length){ toast(t("t_notlink"),t("t_notlink_d"),"#fbbf24"); return; }
   if (urls.length===1 && isVideoLink(urls[0])){ $("#url").value=""; openVideo(urls[0]); return; }
   if (urls.some(isVideoLink) && !(state.video||{}).available){ openVideo(urls.find(isVideoLink)); return; }
   try{
     const r = await api("/api/add",{urls, connections:+$("#conns").value});
-    $("#url").value=""; selected = r.ids[0]; filter="all"; setFilter("all");
-    toast(urls.length>1?`${urls.length} downloads added`:"Download started", urls.length>1?"":host(urls[0]), "#8b5cf6");
+    $("#url").value=""; selected = r.ids[0]; setFilter("all");
+    toast(urls.length>1 ? t("t_added_n",{n:urls.length}) : t("t_started"), urls.length>1?"":host(urls[0]), "#8b5cf6");
     poll();
-  }catch(e){ toast("Couldn't add download", e.message, "#f87171"); }
+  }catch(e){ toast(t("t_cantadd"), e.message, "#f87171"); }
 }
-function setFilter(f){
+function setFilter(f, quiet){
   filter=f; document.querySelectorAll(".nav").forEach(n=>n.classList.toggle("on",n.dataset.f===f));
-  $("#title").textContent = document.querySelector(`.nav[data-f="${f}"]`).childNodes[1].textContent.trim();
-  render();
+  const nav = document.querySelector(`.nav[data-f="${f}"]`);
+  $("#title").textContent = t("f_"+f);
+  const ind = $("#navind"); if (nav){ ind.style.opacity=1; ind.style.transform=`translateY(${nav.offsetTop}px)`; }
+  if (!quiet) render(true); else render();
 }
+async function restartApp(){ restarting = true; $("#restarting").classList.add("on"); try{ await api("/api/restart",{}); }catch{} }
+async function installUpdate(){ try{ await api("/api/update/install",{}); poll(); }catch(e){ toast(t("upd_err",{e:e.message}),"","#f87171"); } }
 
 $("#go").onclick = () => add($("#url").value);
 $("#url").addEventListener("keydown", e => { if (e.key==="Enter") add($("#url").value); });
-$("#q").addEventListener("input", e => { query=e.target.value.toLowerCase().trim(); render(); });
+$("#q").addEventListener("input", e => { query=e.target.value.toLowerCase().trim(); render(true); });
 document.querySelectorAll(".nav").forEach(n => n.onclick = () => setFilter(n.dataset.f));
 $("#clear").onclick = () => api("/api/clear-completed",{}).then(poll);
 $("#conns").onchange = () => api("/api/settings",{connections:+$("#conns").value});
-$("#pick").onclick = () => api("/api/pick-folder",{}).then(r=>{ $("#dir").value=r.dir; if(!r.picked) $("#dir").focus(); }).catch(e=>toast("Folder",e.message,"#f87171"));
-$("#dir").addEventListener("change", e => api("/api/settings",{dir:e.target.value.trim()}).then(()=>toast("Download folder changed",e.target.value,"#8b5cf6")).catch(err=>toast("Folder",err.message,"#f87171")));
-$("#d-open").onclick = () => api("/api/action",{id:selected,action:"open"}).catch(e=>toast("Couldn't open",e.message,"#f87171"));
-$("#d-folder").onclick = () => api("/api/action",{id:selected,action:"folder"}).catch(e=>toast("Couldn't open folder",e.message,"#f87171"));
-
+$("#d-open").onclick = () => api("/api/action",{id:selected,action:"open"}).catch(e=>toast(t("t_action"),e.message,"#f87171"));
+$("#d-folder").onclick = () => api("/api/action",{id:selected,action:"folder"}).catch(e=>toast(t("t_action"),e.message,"#f87171"));
+$("#pcancel").onclick = () => api("/api/cancel-power",{}).then(poll);
 $("#rows").addEventListener("click", e => {
   const row = e.target.closest(".row"); if (!row) return;
   const btn = e.target.closest("[data-act]");
   selected = row.dataset.id;
   if (btn){
     const act = btn.dataset.act;
-    if (act==="cancel" && !btn.classList.contains("confirm")){      // two-step confirm, no browser dialogs
-      btn.classList.add("confirm"); btn.title="Click again to cancel and delete the partial file";
-      setTimeout(()=>{ btn.classList.remove("confirm"); btn.title="Cancel and delete"; }, 2500); return;
+    if (act==="cancel" && !btn.classList.contains("confirm")){
+      btn.classList.add("confirm"); btn.title=t("a_confirm");
+      setTimeout(()=>{ btn.classList.remove("confirm"); btn.title=t("a_cancel"); }, 2500); return;
     }
-    api("/api/action",{id:selected, action:act}).then(poll).catch(err=>toast("Action failed",err.message,"#f87171"));
+    api("/api/action",{id:selected, action:act}).then(poll).catch(err=>toast(t("t_action"),err.message,"#f87171"));
   }
   render();
 });
@@ -565,88 +931,146 @@ $("#rows").addEventListener("dblclick", e => {
   const it = state.items.find(i=>i.id===row.dataset.id);
   if (it && it.status==="completed") api("/api/action",{id:it.id,action:"open"}).catch(()=>{});
 });
-
-// paste anywhere / drag & drop links
 document.addEventListener("paste", e => {
   if (e.target.closest("input")) return;
-  const t = e.clipboardData.getData("text"); if (/^https?:\/\//i.test(t.trim())){ $("#url").value=t.trim(); $("#url").focus(); }
+  const s = e.clipboardData.getData("text"); if (/^https?:\/\//i.test(s.trim())){ $("#url").value=s.trim(); $("#url").focus(); }
 });
 let dragDepth = 0;
 document.addEventListener("dragenter", e => { e.preventDefault(); dragDepth++; $("#drop").classList.add("on"); });
 document.addEventListener("dragleave", () => { if(--dragDepth<=0){ dragDepth=0; $("#drop").classList.remove("on"); } });
 document.addEventListener("dragover", e => e.preventDefault());
-document.addEventListener("drop", e => {
-  e.preventDefault(); dragDepth=0; $("#drop").classList.remove("on");
-  add(e.dataTransfer.getData("text/uri-list") || e.dataTransfer.getData("text/plain"));
+document.addEventListener("drop", e => { e.preventDefault(); dragDepth=0; $("#drop").classList.remove("on");
+  add(e.dataTransfer.getData("text/uri-list") || e.dataTransfer.getData("text/plain")); });
+window.addEventListener("resize", () => { renderDetails(); setFilter(filter,true); });
+document.addEventListener("keydown", e => {
+  if (e.key==="Escape"){ closeModal("vmodal"); closeModal("smodal"); }
+  if (e.key==="Delete" && selected && !e.target.closest("input")){ const it=state.items.find(i=>i.id===selected); if(it&&it.status==="completed") api("/api/action",{id:selected,action:"remove"}).then(poll); }
 });
-window.addEventListener("resize", renderDetails);
-document.addEventListener("keydown", e => { if (e.key==="Delete" && selected && !e.target.closest("input")){ const it=state.items.find(i=>i.id===selected); if(it&&it.status==="completed") api("/api/action",{id:selected,action:"remove"}).then(poll); } });
 
-/* ---------- video picker ---------- */
-const QLABEL = {best:"Best quality","2160":"4K","1440":"1440p","1080":"1080p","720":"720p","480":"480p","360":"360p",audio:"Audio only"};
+/* =================================================================== modals */
+function openModal(id){ $("#"+id).classList.add("on"); }
+function closeModal(id){ $("#"+id).classList.remove("on"); if (id==="vmodal"){ vinfo=null; vurl=null; } }
+document.querySelectorAll("[data-close]").forEach(b => b.onclick = () => closeModal(b.dataset.close));
+document.querySelectorAll(".modal").forEach(m => m.addEventListener("click", e => { if (e.target===m) closeModal(m.id); }));
+
+/* ------------------------------------------------------------- video picker */
 let vq = "best", vinfo = null, vurl = null;
-function closeVideo(){ $("#vmodal").classList.remove("on"); vinfo=null; vurl=null; }
-function mhead(t){ return `<div class="mhead"><b>${esc(t)}</b><button class="ib x" onclick="closeVideo()" title="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>`; }
+function mhead(title){ return `<div class="mhead"><b>${esc(title)}</b><button class="ib x" onclick="closeModal('vmodal')">${svg(ICONS.x,2)}</button></div>`; }
 async function openVideo(url){
-  vurl = url; $("#vmodal").classList.add("on");
+  vurl = url; vinfo = null; openModal("vmodal");
   const v = state.video || {};
-  if (!v.available){ return showInstall(); }
-  $("#vbox").innerHTML = mhead("Video download") + `<div class="mcenter"><div class="spin"></div><p>Getting video info from ${esc(host(url))}…</p></div>`;
+  if (!v.available) return showInstall();
+  $("#vbox").innerHTML = mhead(t("v_title")) + `<div class="vinfo"><div class="vthumb skel"></div><div class="vmeta" style="flex:1"><div class="skel" style="height:16px;width:85%;margin-bottom:8px"></div><div class="skel" style="height:16px;width:60%;margin-bottom:12px"></div><div class="skel" style="height:12px;width:40%"></div></div></div><div class="mcenter"><p>${esc(t("v_getting",{h:host(url)}))}</p></div>`;
   try{
-    vinfo = await api("/api/probe",{url});
+    const info = await api("/api/probe",{url});
     if (vurl !== url) return;
-    vq = vinfo.choices.includes("1080") ? "1080" : vinfo.choices[0];
+    vinfo = info; vq = info.choices.includes("1080") ? "1080" : info.choices[0];
     renderVideo();
   }catch(e){
     if (vurl !== url) return;
-    $("#vbox").innerHTML = mhead("Can't download this video") + `<div class="mcenter"><p>${esc(e.message)}</p><button class="ghost" onclick="closeVideo()">Close</button></div>`;
+    $("#vbox").innerHTML = mhead(t("v_cant")) + `<div class="mcenter"><p>${esc(e.message)}</p><button class="ghost" onclick="closeModal('vmodal')">${esc(t("close"))}</button></div>`;
   }
 }
 function renderVideo(){
-  const i = vinfo, dur = i.duration ? fmtTime(i.duration).replace(/(\d+)s$/,"$1s") : "";
+  const i = vinfo, dur = i.duration ? fmtTime(i.duration) : "";
   const notes = [];
-  if (!i.ffmpeg && i.choices.length>2) notes.push("FFmpeg isn't available, so on some sites (like YouTube) only lower qualities come with sound. FastGrab picks the best one that includes sound.");
-  if (!i.js_runtime && /youtube/i.test(i.site||"")) notes.push("No JavaScript runtime (Node.js or Deno) was found, so YouTube may fail or offer fewer qualities.");
-  $("#vbox").innerHTML = mhead("Video download") + `
+  if (!i.ffmpeg && i.choices.length>2) notes.push(t("v_noffmpeg"));
+  if (!i.js_runtime && /youtube/i.test(i.site||"")) notes.push(t("v_nojs"));
+  $("#vbox").innerHTML = mhead(t("v_title")) + `
     <div class="vinfo">${i.thumbnail?`<img class="vthumb" src="${esc(i.thumbnail)}" alt="">`:`<div class="vthumb"></div>`}
-      <div class="vmeta"><div class="vt">${esc(i.title)}</div><div class="vs">${esc([i.site,i.uploader,dur].filter(Boolean).join(" · "))}</div></div></div>
-    <div class="qlabel">Quality</div>
-    <div class="qgrid">${i.choices.map(c=>`<button class="q ${c===vq?"on":""}" data-q="${c}">${QLABEL[c]||c}</button>`).join("")}</div>
+      <div class="vmeta"><div class="vt" dir="auto">${esc(i.title)}</div><div class="vs" dir="auto">${esc([i.site,i.uploader,dur].filter(Boolean).join(" · "))}</div></div></div>
+    <div class="qlabel">${esc(t("quality"))}</div>
+    <div class="qgrid">${i.choices.map(c=>`<button class="q ${c===vq?"on":""}" data-q="${c}">${esc(qlabel(c))}</button>`).join("")}</div>
     ${notes.map(n=>`<div class="mnote">${esc(n)}</div>`).join("")}
-    <div class="mfoot"><small>Only download videos you have the right to save.</small>
-      <button class="ghost" onclick="closeVideo()">Cancel</button>
-      <button class="go" id="vgo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 4v12m0 0-5-5m5 5 5-5M5 20h14"/></svg>Download</button></div>`;
-  $("#vbox").querySelectorAll(".q").forEach(b => b.onclick = () => { vq=b.dataset.q; renderVideo(); });
+    <div class="mfoot"><small>${esc(t("v_rights"))}</small>
+      <button class="ghost" onclick="closeModal('vmodal')">${esc(t("cancel"))}</button>
+      <button class="go" id="vgo">${svg('<path d="M12 4v12m0 0-5-5m5 5 5-5M5 20h14"/>',2.2)}${esc(t("download"))}</button></div>`;
+  $("#vbox").querySelectorAll(".q").forEach(b => b.onclick = () => { vq=b.dataset.q; $("#vbox").querySelectorAll(".q").forEach(x=>x.classList.toggle("on",x===b)); });
   $("#vgo").onclick = async () => {
     try{
       const r = await api("/api/add",{urls:[vurl], kind:"video", choice:vq, connections:+$("#conns").value,
                                       meta:{title:i.title, site:i.site, thumbnail:i.thumbnail}});
-      selected = r.ids[0]; closeVideo(); setFilter("all"); toast("Video download started", i.title, "#8b5cf6"); poll();
-    }catch(e){ toast("Couldn't add video", e.message, "#f87171"); }
+      selected = r.ids[0]; closeModal("vmodal"); setFilter("all"); toast(t("v_started"), i.title, "#8b5cf6"); poll();
+    }catch(e){ toast(t("t_cantadd"), e.message, "#f87171"); }
   };
 }
 function showInstall(){
   const v = state.video || {};
-  $("#vbox").innerHTML = mhead("Add video support") + `<div class="mcenter">
-    ${v.installing ? `<div class="spin"></div><p>Installing yt-dlp and FFmpeg… this takes about a minute.</p>`
-    : `<p>Downloading from YouTube, TikTok, Instagram, X and 1,000+ other sites needs the free <b>yt-dlp</b> add-on (about 15 MB).</p>
-       ${v.install_error?`<div class="mnote" style="text-align:left">${esc(v.install_error)}</div>`:""}
-       <button class="go" style="margin:0 auto" id="vinstall">Install video support</button>`}</div>`;
+  $("#vbox").innerHTML = mhead(t("v_add")) + `<div class="mcenter">
+    ${v.installing ? `<div class="spin"></div><p>${esc(t("v_installing"))}</p>`
+    : `<p>${t("v_need")}</p>${v.install_error?`<div class="mnote" style="text-align:start">${esc(v.install_error)}</div>`:""}
+       <button class="go" style="margin:0 auto" id="vinstall">${esc(t("v_install"))}</button>`}</div>`;
   const b = $("#vinstall"); if (b) b.onclick = () => api("/api/install-video",{}).then(()=>{ state.video.installing=true; showInstall(); });
 }
 let wasInstalling = false;
 function watchInstall(){
   const v = state.video || {};
   if ($("#vmodal").classList.contains("on") && !vinfo && vurl){
-    if (v.installing || wasInstalling !== v.installing) { if (!v.available) showInstall(); }
-    if (wasInstalling && !v.installing && v.available){ toast("Video support installed","You can now download from video sites","#34d399"); openVideo(vurl); }
+    if (v.installing || (!v.available && wasInstalling !== v.installing)) showInstall();
+    if (wasInstalling && !v.installing && v.available){ toast(t("v_installed"),t("v_installed_d"),"#34d399"); openVideo(vurl); }
   }
   wasInstalling = !!v.installing;
 }
-$("#vmodal").addEventListener("click", e => { if (e.target.id==="vmodal") closeVideo(); });
-document.addEventListener("keydown", e => { if (e.key==="Escape") closeVideo(); });
 
-api("/api/state").then(s => { $("#conns").value = String(s.settings.connections||8); }).catch(()=>{});
+/* ----------------------------------------------------------------- settings */
+let spane = "general";
+function positionSeg(seg){ if (!seg) return; const on = seg.querySelector("button.on"), ind = seg.querySelector(".segind"); if (on && ind){ ind.style.left = on.offsetLeft+"px"; ind.style.width = on.offsetWidth+"px"; } }
+function positionTab(){ const on = document.querySelector(`.stab[data-p="${spane}"]`), ind = $("#stabind"); if (on){ ind.style.left = on.offsetLeft+"px"; ind.style.width = on.offsetWidth+"px"; } }
+function setTog(el, v){ el.classList.toggle("on", !!v); }
+function renderSettings(){
+  const s = state.settings, sc = s.schedule || {}, u = state.update || {}, a = u.app || {};
+  document.querySelectorAll("#langseg button").forEach(b => b.classList.toggle("on", b.dataset.v===s.lang)); positionSeg($("#langseg"));
+  if (document.activeElement !== $("#s-dir")) $("#s-dir").value = s.dir || "";
+  $("#s-conns").value = String(s.connections); $("#s-max").value = String(s.max_active);
+  setTog($("#s-sched"), sc.enabled);
+  if (document.activeElement !== $("#s-start")) $("#s-start").value = sc.start;
+  if (document.activeElement !== $("#s-stop")) $("#s-stop").value = sc.stop;
+  const ss = $("#s-schedstate"); ss.className = "statusline " + (!sc.enabled ? "" : state.schedule_open ? "ok" : "warn");
+  ss.innerHTML = `<i></i>${esc(!sc.enabled ? t("sched_off") : state.schedule_open ? t("sched_open") : t("sched_closed",{t:sc.start}))}`;
+  $("#s-done").value = s.when_done;
+  // updates
+  $("#u-app").textContent = "v"+state.version;
+  const vv = (state.video||{}).version;
+  $("#u-video").textContent = vv ? t("video_ver",{v:vv}) : t("video_none");
+  $("#u-check").disabled = !!u.busy; $("#u-check").textContent = u.busy==="checking" ? t("checking") : t("check_now");
+  const box = $("#u-box"); box.classList.toggle("on", !!(a.available || u.restart_needed));
+  if (u.restart_needed){ $("#u-boxtitle").textContent = a.installed ? t("upd_ready") : t("video_updated",{v:(u.video||{}).updated_to||""}); $("#u-notes").textContent = t("upd_restart_d"); $("#u-install").textContent = t("upd_restart"); $("#u-install").onclick = restartApp; }
+  else if (a.available){ $("#u-boxtitle").textContent = t("upd_avail",{v:a.latest}); $("#u-notes").textContent = a.notes||"";
+    $("#u-install").textContent = u.busy==="installing" ? t("installing") : t("upd_install",{v:a.latest}); $("#u-install").disabled = !!u.busy; $("#u-install").onclick = installUpdate; }
+  const us = $("#u-status");
+  us.className = "statusline " + (u.error ? "warn" : u.last_check ? "ok" : "");
+  us.innerHTML = `<i></i>${esc(u.error ? t("upd_err",{e:u.error}) : u.last_check ? (a.available ? t("upd_avail",{v:a.latest}) : t("up_to_date")) + " · " + t("last_checked",{t:ago(u.last_check)}) : t("never_checked"))}`;
+  setTog($("#s-autovideo"), s.auto_update_video); setTog($("#s-autoapp"), s.check_app_updates);
+  // browser extension
+  $("#e-key").textContent = s.ext_key || "";
+  const es = $("#e-status");
+  es.className = "statusline " + (!state.ext_port_ok ? "warn" : state.ext_seen ? "ok" : "");
+  es.innerHTML = `<i></i>${esc(!state.ext_port_ok ? t("ext_port") : state.ext_seen ? t("ext_seen",{t:ago(state.ext_seen)}) : t("ext_never"))}`;
+}
+const saveSetting = body => api("/api/settings", body).then(poll).catch(e=>toast(t("t_action"),e.message,"#f87171"));
+$("#openSettings").onclick = () => { openModal("smodal"); renderSettings(); requestAnimationFrame(()=>{ positionTab(); positionSeg($("#langseg")); }); };
+document.querySelectorAll(".stab").forEach(b => b.onclick = () => { spane = b.dataset.p;
+  document.querySelectorAll(".stab").forEach(x=>x.classList.toggle("on",x===b));
+  document.querySelectorAll(".spane").forEach(p=>p.classList.toggle("on",p.dataset.p===spane)); positionTab(); positionSeg($("#langseg")); });
+document.querySelectorAll("#langseg button").forEach(b => b.onclick = () => { applyLang(b.dataset.v); saveSetting({lang:b.dataset.v}); });
+$("#s-dir").addEventListener("change", e => saveSetting({dir:e.target.value.trim()}).then(()=>toast(t("t_folder"),e.target.value,"#8b5cf6")));
+$("#s-pick").onclick = () => api("/api/pick-folder",{}).then(r=>{ $("#s-dir").value=r.dir; if(!r.picked) $("#s-dir").focus(); poll(); }).catch(e=>toast(t("t_action"),e.message,"#f87171"));
+$("#s-conns").onchange = e => { $("#conns").value = e.target.value; saveSetting({connections:+e.target.value}); };
+$("#s-max").onchange = e => saveSetting({max_active:+e.target.value});
+$("#s-sched").onclick = () => saveSetting({schedule:{enabled:!state.settings.schedule.enabled}});
+$("#s-start").addEventListener("change", e => saveSetting({schedule:{start:e.target.value}}));
+$("#s-stop").addEventListener("change", e => saveSetting({schedule:{stop:e.target.value}}));
+$("#s-done").onchange = e => saveSetting({when_done:e.target.value});
+$("#s-autovideo").onclick = () => saveSetting({auto_update_video:!state.settings.auto_update_video});
+$("#s-autoapp").onclick = () => saveSetting({check_app_updates:!state.settings.check_app_updates});
+$("#u-check").onclick = () => api("/api/update/check",{}).then(poll);
+$("#e-copy").onclick = () => navigator.clipboard.writeText(state.settings.ext_key||"").then(()=>toast(t("t_copied"),"","#8b5cf6")).catch(()=>{});
+$("#e-newkey").onclick = () => saveSetting({new_ext_key:true}).then(()=>toast(t("new_key_t"),t("new_key_d"),"#fbbf24"));
+$("#e-folder").onclick = () => api("/api/open-extension-folder",{}).catch(e=>toast(t("t_action"),e.message,"#f87171"));
+
+/* ===================================================================== start */
+api("/api/state").then(s => { $("#conns").value = String(s.settings.connections||8); applyLang(s.settings.lang||"en"); }).catch(()=>applyLang("en"));
+requestAnimationFrame(animSegments); requestAnimationFrame(animSpeed);
 poll(); setInterval(poll, 500);
 </script>
 </body>

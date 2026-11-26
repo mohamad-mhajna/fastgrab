@@ -1,0 +1,71 @@
+{
+ "extName": {
+  "message": "FastGrab download manager"
+ },
+ "extDesc": {
+  "message": "Sends your downloads and video pages to the FastGrab app for faster, resumable downloads."
+ },
+ "tagline": {
+  "message": "Up to 10× faster downloads"
+ },
+ "status_connected": {
+  "message": "Connected"
+ },
+ "status_offline": {
+  "message": "App not running"
+ },
+ "status_unpaired": {
+  "message": "Not paired"
+ },
+ "keyLabel": {
+  "message": "Pairing key"
+ },
+ "keyHint": {
+  "message": "Copy it from FastGrab → Settings → Browser extension."
+ },
+ "save": {
+  "message": "Save"
+ },
+ "captureLabel": {
+  "message": "Catch downloads automatically"
+ },
+ "captureHint": {
+  "message": "Programs, archives, videos, music and PDFs go to FastGrab. If FastGrab isn't open, the browser downloads them as usual."
+ },
+ "grabVideo": {
+  "message": "Download the video on this page"
+ },
+ "grabPage": {
+  "message": "Find a video on this page"
+ },
+ "advanced": {
+  "message": "Advanced"
+ },
+ "portLabel": {
+  "message": "FastGrab port"
+ },
+ "menuLink": {
+  "message": "Download link with FastGrab"
+ },
+ "menuVideo": {
+  "message": "Download video with FastGrab"
+ },
+ "notifySent": {
+  "message": "Sent to FastGrab"
+ },
+ "notifyPicker": {
+  "message": "Choose the quality in FastGrab"
+ },
+ "notifyFailed": {
+  "message": "Couldn't send to FastGrab"
+ },
+ "notRunning": {
+  "message": "Open FastGrab first, then try again."
+ },
+ "needPairing": {
+  "message": "Paste the pairing key in the FastGrab extension first."
+ },
+ "wrongKey": {
+  "message": "That key doesn't match. Copy it again from FastGrab's settings."
+ }
+}

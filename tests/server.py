@@ -49,6 +49,11 @@ class Handler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(page)
             return
+        if self.path.startswith("/needs-cookie") and "session=ok" not in (self.headers.get("Cookie") or ""):
+            self.send_response(403)                  # like a site that needs you logged in
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+            return
         norange = self.path.startswith("/norange")
         total = len(DATA)
         start, end = 0, total - 1

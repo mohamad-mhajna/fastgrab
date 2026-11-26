@@ -34,14 +34,14 @@ import urllib.parse
 import urllib.request
 from email.message import Message
 
-__version__ = "1.2.0"
+__version__ = "1.3.0"
 
 CHUNK = 64 * 1024            # bytes read per socket read
 MIN_SPLIT = 512 * 1024       # never create segments smaller than this
 ALIGN = 4096                 # split points are 4 KiB aligned
 MAX_RETRIES = 5              # consecutive failures (without progress) per connection
 TIMEOUT = 20                 # socket timeout, seconds
-UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) fastgrab/1.2"  # keep in sync with __version__
+UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) fastgrab/1.3"  # keep in sync with __version__
 
 
 # ----------------------------------------------------------------- segments --

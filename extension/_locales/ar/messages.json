@@ -1,0 +1,71 @@
+{
+ "extName": {
+  "message": "FastGrab – مدير التنزيلات"
+ },
+ "extDesc": {
+  "message": "يرسل تنزيلاتك وصفحات الفيديو إلى تطبيق FastGrab لتنزيلات أسرع يمكن استئنافها."
+ },
+ "tagline": {
+  "message": "تنزيلات أسرع حتى 10 مرات"
+ },
+ "status_connected": {
+  "message": "متصل"
+ },
+ "status_offline": {
+  "message": "التطبيق غير مفتوح"
+ },
+ "status_unpaired": {
+  "message": "غير مقترن"
+ },
+ "keyLabel": {
+  "message": "مفتاح الاقتران"
+ },
+ "keyHint": {
+  "message": "انسخه من FastGrab ← الإعدادات ← إضافة المتصفح."
+ },
+ "save": {
+  "message": "حفظ"
+ },
+ "captureLabel": {
+  "message": "التقاط التنزيلات تلقائيًا"
+ },
+ "captureHint": {
+  "message": "البرامج والأرشيفات والفيديو والموسيقى وملفات PDF تذهب إلى FastGrab. إذا لم يكن FastGrab مفتوحًا، يقوم المتصفح بتنزيلها كالمعتاد."
+ },
+ "grabVideo": {
+  "message": "تنزيل الفيديو في هذه الصفحة"
+ },
+ "grabPage": {
+  "message": "البحث عن فيديو في هذه الصفحة"
+ },
+ "advanced": {
+  "message": "متقدم"
+ },
+ "portLabel": {
+  "message": "منفذ FastGrab"
+ },
+ "menuLink": {
+  "message": "تنزيل الرابط باستخدام FastGrab"
+ },
+ "menuVideo": {
+  "message": "تنزيل الفيديو باستخدام FastGrab"
+ },
+ "notifySent": {
+  "message": "أُرسل إلى FastGrab"
+ },
+ "notifyPicker": {
+  "message": "اختر الجودة في FastGrab"
+ },
+ "notifyFailed": {
+  "message": "تعذّر الإرسال إلى FastGrab"
+ },
+ "notRunning": {
+  "message": "افتح FastGrab أولًا، ثم حاول مرة أخرى."
+ },
+ "needPairing": {
+  "message": "الصق مفتاح الاقتران في إضافة FastGrab أولًا."
+ },
+ "wrongKey": {
+  "message": "المفتاح غير مطابق. انسخه مرة أخرى من إعدادات FastGrab."
+ }
+}

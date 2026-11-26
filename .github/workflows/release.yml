@@ -35,7 +35,7 @@ jobs:
           VIDEO="--hidden-import fastgrab_video --collect-data yt_dlp_ejs --collect-all imageio_ffmpeg"
           pyinstaller --onefile --console  --name fastgrab-cli --icon assets/fastgrab.ico $VIDEO fastgrab.py
           pyinstaller --onefile --windowed --name FastGrab --icon assets/fastgrab.ico \
-                      --add-data "ui:ui" $VIDEO fastgrab_app.py
+                      --add-data "ui:ui" --add-data "extension:extension" $VIDEO fastgrab_app.py
 
       - name: Test fastgrab-cli.exe (command line)
         timeout-minutes: 5
@@ -59,9 +59,19 @@ jobs:
           FASTGRAB_APP_CMD: dist/FastGrab.exe
         run: python -m unittest tests.test_app -v
 
+      - name: Source package (used by the in-app updater) and browser extension
+        shell: bash
+        run: |
+          7z a -tzip dist/fastgrab-source.zip fastgrab.py fastgrab_app.py fastgrab_video.py fastgrab_update.py ui extension
+          (cd extension && 7z a -tzip ../dist/FastGrab-extension.zip .)
+          7z l dist/fastgrab-source.zip
+
       - name: Checksums
         shell: bash
-        run: cd dist && sha256sum FastGrab.exe fastgrab-cli.exe > SHA256SUMS.txt && cat SHA256SUMS.txt
+        run: |
+          cd dist
+          sha256sum FastGrab.exe fastgrab-cli.exe fastgrab-source.zip FastGrab-extension.zip > SHA256SUMS.txt
+          cat SHA256SUMS.txt
 
       - name: Publish
         if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
@@ -71,6 +81,8 @@ jobs:
           files: |
             dist/FastGrab.exe
             dist/fastgrab-cli.exe
+            dist/fastgrab-source.zip
+            dist/FastGrab-extension.zip
             dist/SHA256SUMS.txt
           append_body: true
           body: |
@@ -78,5 +90,7 @@ jobs:
             ### Downloads
             - **FastGrab.exe**: the desktop app. Double-click it to open the window. Video mode (YouTube, TikTok, Instagram…) is built in. For YouTube, install [Node.js](https://nodejs.org) or [Deno](https://deno.com).
             - **fastgrab-cli.exe**: the command-line version (`.\fastgrab-cli.exe URL -c 16`).
+            - **FastGrab-extension.zip**: the Chrome/Edge extension. FastGrab → Settings → Browser extension explains how to add it.
+            - **fastgrab-source.zip**: the Python source, used by FastGrab's built-in updater.
 
             No Python needed. Windows SmartScreen may warn about an unknown publisher, because the files aren't code-signed: click **More info → Run anyway**. You can check the files against `SHA256SUMS.txt`.

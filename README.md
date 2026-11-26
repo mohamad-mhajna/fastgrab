@@ -48,6 +48,24 @@ Every downloaded file had the same SHA-256 as the original.
 - Paste a link anywhere with Ctrl+V, or drag a link onto the window
 - Downloads that were running when you closed the window resume on the next start
 
+**Browser extension** (Chrome and Edge)
+- Downloads you start in the browser go to FastGrab automatically (programs, archives, videos, music, PDFs)
+- Right-click → **Download link with FastGrab** / **Download video with FastGrab**
+- Your cookies travel with the download, so files behind a login work too
+- If FastGrab isn't open, the browser just downloads normally, so nothing is lost
+- Paired with the app by a secret key: other extensions and websites can't use it
+
+**Scheduler**
+- Download only within a time window (for example 02:00–08:00). Queued downloads wait, and running ones pause when the window ends and continue next time
+- **Start now** on any download overrides the schedule
+- When everything finishes: close FastGrab, sleep or shut down the PC (once, with a 60-second countdown you can cancel)
+
+**Auto-update**
+- yt-dlp updates itself daily from PyPI, verified against PyPI's SHA-256 (also inside the `.exe`, no pip needed). A broken update automatically falls back to the previous copy
+- FastGrab checks GitHub for new releases and updates itself (verified against the release's `SHA256SUMS.txt`), then restarts in the same window
+
+**Languages:** English, العربية and עברית, with a full right-to-left layout.
+
 **Video mode** (optional, powered by [yt-dlp](https://github.com/yt-dlp/yt-dlp))
 - Paste a link from YouTube, TikTok, Instagram, X/Twitter, Facebook, Reddit, Vimeo, Twitch, SoundCloud, Pinterest and more
 - A quality picker with the video's thumbnail: best, 4K, 1440p, 1080p, 720p, 480p, 360p or audio only
@@ -169,6 +187,10 @@ The suite starts a local HTTP server (`tests/server.py`) that can throttle each 
 | `test_server_without_range_support` | single-connection fallback works |
 | `test_survives_dropped_connections` | a server that randomly drops connections still yields a correct file |
 | `test_splits_never_overlap_or_leave_gaps` | 2000 random claim/steal steps always tile the file exactly |
+| `test_features` (10) | scheduler window math, waiting / starting / pausing at the window edges, "Start now", when-done countdown + cancel + run-once, settings and languages, extension pairing key, cookies passed to a login-only file, video links opening the picker |
+| `test_update` (4) | yt-dlp update from a fake PyPI: checksum verified, loaded from the addons folder ahead of the installed copy, a wrong checksum rejected, a broken build falling back; **a full self-update**: FastGrab finds v9.9.9, installs it, restarts itself and the same session keeps working |
+| `extension.test.mjs` (6) | the extension's rules for which downloads to catch |
+| `extension_e2e.py` (13, run locally) | the real extension in Chrome: pairing via the popup, catching a click on a download link, cookies, right-click menu, video pages, falling back to the browser when FastGrab is closed, Arabic/Hebrew popup |
 | `test_app` video tests (3) | video info lookup, quality choice, pause/resume of a video, automatic web-page → video fallback, cancel removes temp files (uses yt-dlp's generic extractor on a local page) |
 | `test_app` (5 tests) | app API: live segments, pause/resume, unique names for same-name downloads, cancel deletes only its own partial files, rejects non-http links, 403 without token or with a foreign `Host` |
 
@@ -178,8 +200,11 @@ Tests run on Linux, Windows and macOS through GitHub Actions.
 
 ## Roadmap
 
-- [ ] Browser extension (Chrome MV3 + native messaging) to catch downloads automatically
-- [ ] Download queue and speed limiter (token bucket)
+- [x] Browser extension (Chrome/Edge)
+- [x] Download queue, scheduler and when-done actions
+- [x] Auto-update
+- [x] Arabic and Hebrew
+- [ ] Speed limiter (token bucket)
 - [ ] Optional checksum verification (`--sha256`)
 - [x] Desktop app
 - [ ] System tray icon and notifications

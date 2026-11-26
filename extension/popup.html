@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <header>
+    <img src="icons/icon48.png" alt="" width="30" height="30">
+    <div><b>FastGrab</b><small data-i18n="tagline"></small></div>
+    <span id="status" class="pill"></span>
+  </header>
+
+  <section id="pairBox">
+    <label for="key" data-i18n="keyLabel"></label>
+    <div class="row"><input id="key" type="password" spellcheck="false" autocomplete="off"><button id="save" class="primary" data-i18n="save"></button></div>
+    <p class="hint" data-i18n="keyHint"></p>
+  </section>
+
+  <section>
+    <label class="switch"><input type="checkbox" id="capture"><span></span><b data-i18n="captureLabel"></b></label>
+    <p class="hint" data-i18n="captureHint"></p>
+  </section>
+
+  <section id="tabBox" hidden>
+    <button id="grabTab" class="wide primary"></button>
+  </section>
+
+  <details>
+    <summary data-i18n="advanced"></summary>
+    <label for="port" data-i18n="portLabel"></label>
+    <div class="row"><input id="port" type="number" min="1" max="65535"><button id="savePort" data-i18n="save"></button></div>
+  </details>
+  <p id="msg" class="msg"></p>
+  <script type="module" src="popup.js"></script>
+</body>
+</html>

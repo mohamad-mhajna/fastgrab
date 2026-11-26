@@ -18,9 +18,27 @@ import threading
 import time
 import urllib.parse
 
-try:
+try:                                        # use an auto-updated yt-dlp if there is one
+    import fastgrab_update
+    ADDONS = fastgrab_update.activate()
+except Exception:
+    ADDONS = {}
+
+def _import_ytdlp():
     import yt_dlp
     from yt_dlp.utils import DownloadCancelled
+    return yt_dlp, DownloadCancelled
+
+
+try:
+    try:
+        yt_dlp, DownloadCancelled = _import_ytdlp()
+    except Exception:
+        if not ADDONS:
+            raise
+        fastgrab_update.deactivate()        # a broken update: fall back to the bundled copy
+        ADDONS = {}
+        yt_dlp, DownloadCancelled = _import_ytdlp()
     AVAILABLE = True
 except ImportError:                         # video mode is optional
     yt_dlp = None
