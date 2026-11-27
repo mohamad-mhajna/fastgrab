@@ -1,6 +1,6 @@
 # fastgrab ⚡
 
-[![tests](https://github.com/mohamadar8162-design/fastgrab/actions/workflows/tests.yml/badge.svg)](https://github.com/mohamadar8162-design/fastgrab/actions/workflows/tests.yml)
+[![tests](https://github.com/mohamad-mhajna/fastgrab/actions/workflows/tests.yml/badge.svg)](https://github.com/mohamad-mhajna/fastgrab/actions/workflows/tests.yml)
 ![python](https://img.shields.io/badge/python-3.10%2B-blue)
 ![deps](https://img.shields.io/badge/dependencies-none-brightgreen)
 ![license](https://img.shields.io/badge/license-MIT-green)
@@ -11,7 +11,7 @@
 
 ## Download
 
-Get **[FastGrab.exe](https://github.com/mohamadar8162-design/fastgrab/releases/latest)** for Windows: a single file, nothing to install, video support included. Or run from source on any OS: `python fastgrab_app.py`.
+Get **[FastGrab.exe](https://github.com/mohamad-mhajna/fastgrab/releases/latest)** for Windows: a single file, nothing to install, video support included. Or run from source on any OS: `python fastgrab_app.py`.
 
 ## Benchmark
 
@@ -64,7 +64,7 @@ python fastgrab.py URL -c 16 -o ~/Downloads     # 16 connections, custom folder
 python fastgrab.py "https://youtu.be/..." -q 1080
 ```
 
-Press **Ctrl+C** to pause; run the same command again to resume. On Windows, `install.ps1` adds `fastgrab` to your PATH (no admin rights), or use `fastgrab-cli.exe` from the [Releases page](https://github.com/mohamadar8162-design/fastgrab/releases/latest).
+Press **Ctrl+C** to pause; run the same command again to resume. On Windows, `install.ps1` adds `fastgrab` to your PATH (no admin rights), or use `fastgrab-cli.exe` from the [Releases page](https://github.com/mohamad-mhajna/fastgrab/releases/latest).
 
 ## Tests
 

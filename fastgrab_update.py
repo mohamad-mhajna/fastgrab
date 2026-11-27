@@ -26,7 +26,7 @@ import urllib.parse
 import urllib.request
 import zipfile
 
-REPO = "mohamadar8162-design/fastgrab"
+REPO = "mohamad-mhajna/fastgrab"
 PYPI = os.environ.get("FASTGRAB_PYPI", "https://pypi.org/pypi")
 GITHUB_API = os.environ.get("FASTGRAB_GITHUB_API", "https://api.github.com")
 SOURCE_FILES = ("fastgrab.py", "fastgrab_app.py", "fastgrab_video.py", "fastgrab_update.py",

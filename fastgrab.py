@@ -34,7 +34,7 @@ import urllib.parse
 import urllib.request
 from email.message import Message
 
-__version__ = "1.4.1"
+__version__ = "1.4.2"
 
 CHUNK = 64 * 1024            # bytes read per socket read
 MIN_SPLIT = 512 * 1024       # never create segments smaller than this

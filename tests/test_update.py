@@ -77,7 +77,7 @@ class FakeServer:
     def release(self, version, assets):
         sums = "".join(f"{hashlib.sha256(d).hexdigest()}  {n}\n" for n, d in assets.items())
         assets = {**assets, "SHA256SUMS.txt": sums.encode()}
-        self.routes["/gh/repos/mohamadar8162-design/fastgrab/releases/latest"] = {
+        self.routes["/gh/repos/mohamad-mhajna/fastgrab/releases/latest"] = {
             "tag_name": f"v{version}", "html_url": f"{self.base}/release", "body": "notes",
             "assets": [{"name": n, "browser_download_url": self.file(n, d)} for n, d in assets.items()]}
 
@@ -140,7 +140,7 @@ class ReleaseNotReady(unittest.TestCase):
     def test_release_without_files_is_not_offered(self):
         """Right after publishing, GitHub is still building the files: no update yet."""
         srv = FakeServer()
-        srv.routes["/gh/repos/mohamadar8162-design/fastgrab/releases/latest"] = {
+        srv.routes["/gh/repos/mohamad-mhajna/fastgrab/releases/latest"] = {
             "tag_name": "v9.9.9", "html_url": srv.base + "/release", "body": "notes", "assets": []}
         env = dict(os.environ, FASTGRAB_GITHUB_API=srv.base + "/gh")
         code = ("import fastgrab_update as u, time; up = u.Updater('1.0.0', '.'); up.check(video=False)\n"

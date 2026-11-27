@@ -136,7 +136,7 @@ def update_popup():
                 data = re.sub(rb'__version__ = "[^"]+"', b'__version__ = "9.9.9"', data)
             z.writestr(rel, data)
     fake.release("9.9.9", {"fastgrab-source.zip": buf.getvalue()})
-    fake.routes["/gh/repos/mohamadar8162-design/fastgrab/releases/latest"]["body"] = \
+    fake.routes["/gh/repos/mohamad-mhajna/fastgrab/releases/latest"]["body"] = \
         "## FastGrab 9.9.9\n\n**New**\n- Faster than ever\n- `Tray` icon"
     srv = Server(size_mb=1, rate_kb=4096)
     tmp = tempfile.mkdtemp()
