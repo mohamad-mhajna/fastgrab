@@ -36,79 +36,89 @@ input,select{font:inherit;color:inherit}
 .num,.tab{font-variant-numeric:tabular-nums}
 .ltr{direction:ltr;unicode-bidi:isolate}
 
-/* ---------- sidebar ---------- */
-.side{display:flex;flex-direction:column;padding:16px 12px;gap:2px;position:relative;min-height:0;overflow-y:auto}
-.side::-webkit-scrollbar{width:0}
-.brand{display:flex;align-items:center;gap:10px;padding:2px 8px 18px}
-.logo{width:34px;height:34px;border-radius:10px;background:var(--grad);display:grid;place-items:center;box-shadow:0 8px 24px -6px rgba(139,92,246,.7);flex:none}
-.logo svg{transition:transform .4s var(--spring)}
+/* ---------- window: top bar, link box, list (+ details drawer) ---------- */
+.app{position:relative;z-index:1;display:flex;flex-direction:column;height:100vh;min-height:0}
+.sp{flex:1}
+.top{display:flex;align-items:center;gap:14px;height:60px;padding:0 20px;border-bottom:1px solid var(--line);flex:none}
+.brand{display:flex;align-items:baseline;gap:9px}
+.brand .logo{align-self:center}
+.logo{width:30px;height:30px;border-radius:9px;background:var(--grad);display:grid;place-items:center;box-shadow:0 6px 20px -6px rgba(139,92,246,.7);flex:none}
+.logo svg{width:16px;height:16px;transition:transform .4s var(--spring)}
 .brand:hover .logo svg{transform:rotate(-12deg) scale(1.1)}
-.brand b{font-size:16px;letter-spacing:.2px}
-.brand small{display:block;color:var(--faint);font-size:11px;margin-top:-2px}
-.navs{position:relative;display:flex;flex-direction:column;gap:2px}
-.navind{position:absolute;inset-inline:0;top:0;height:38px;border-radius:var(--r-sm);background:rgba(139,92,246,.16);box-shadow:inset 0 0 0 1px rgba(139,92,246,.35);transition:transform .38s var(--ease),height .38s var(--ease),opacity .2s;pointer-events:none;opacity:0}
-.nav{position:relative;display:flex;align-items:center;gap:10px;padding:9px 10px;height:38px;border-radius:var(--r-sm);color:var(--muted);text-align:start;width:100%}
-.nav:hover{background:rgba(255,255,255,.04);color:var(--text)}
-.nav.on{color:var(--text)}
-.nav svg{width:17px;height:17px;flex:none}
-.nav .n{margin-inline-start:auto;font-size:11.5px;color:var(--faint);font-variant-numeric:tabular-nums;transition:color .2s}
+.brand b{font-size:15.5px;letter-spacing:.1px}
+.brand small{color:var(--faint);font-size:11.5px}
+/* live speed in the top bar: number + the last minute as a small graph */
+.speedcard{display:flex;align-items:center;gap:12px;margin-inline-start:18px;padding:0 14px 0 6px;height:40px;border-radius:12px;background:rgba(255,255,255,.035);border:1px solid var(--line)}
+#spark{width:110px;height:28px}
+.speedcard .val{font-size:15px;font-weight:650;font-variant-numeric:tabular-nums;line-height:1.1}
+.speedcard .sub{font-size:11px;color:var(--muted);white-space:nowrap}
+.chipcard{display:none;align-items:center;gap:8px;height:34px;padding:0 6px 0 12px;border-radius:10px;font-size:12px;white-space:nowrap;animation:panelIn .4s var(--ease)}
+.chipcard.on{display:flex}
+.chipcard b{font-weight:600}.chipcard span{color:var(--muted)}
+.chipcard span:empty{display:none}
+.updcard{background:rgba(52,211,153,.09);border:1px solid rgba(52,211,153,.3)}
+.updcard span{display:none}
+.updcard button{height:26px;padding:0 10px;border-radius:7px;background:rgba(52,211,153,.18);color:#a7f3d0;font-size:12px;font-weight:600}
+.updcard button:hover{background:rgba(52,211,153,.28)}
+.schedcard{background:rgba(96,165,250,.08);border:1px solid rgba(96,165,250,.25);padding-inline-end:12px}
+.schedcard b{color:#bfdbfe}
+.topbtn{width:38px;height:38px;border-radius:10px;border:1px solid var(--line);color:var(--muted);display:grid;place-items:center}
+.topbtn:hover{color:var(--text);border-color:var(--line-2);background:var(--panel-2)}
+.topbtn svg{width:18px;height:18px;transition:transform .5s var(--ease)}
+.topbtn:hover svg{transform:rotate(60deg)}
+
+/* the link box is the first thing you see */
+.hero{padding:22px 20px 14px;flex:none}
+.addbar{display:flex;gap:10px;align-items:center;padding:8px;border-radius:18px;background:rgba(255,255,255,.04);border:1px solid var(--line);transition:border-color .2s,box-shadow .3s}
+.addbar:focus-within{border-color:rgba(139,92,246,.55);box-shadow:0 0 0 5px rgba(139,92,246,.12),0 18px 50px -20px rgba(139,92,246,.55)}
+.url{flex:1;display:flex;align-items:center;gap:12px;padding:0 10px 0 12px;height:48px;min-width:0}
+.url svg{width:20px;height:20px;color:var(--faint);flex:none;transition:color .2s,transform .3s var(--spring)}
+.addbar:focus-within .url svg{color:#c4b5fd;transform:rotate(-20deg)}
+.url input{flex:1;background:none;border:0;outline:none;font-size:15px;user-select:text;min-width:0}
+.url input::placeholder{color:var(--faint)}
+.conns{display:flex;align-items:center;gap:8px;height:48px;padding:0 14px;border-radius:12px;background:rgba(0,0,0,.25);color:var(--muted);font-size:12.5px;white-space:nowrap}
+.conns select{background:transparent;border:0;outline:none;color:var(--text);font-weight:600;cursor:pointer}
+option{background:#151722;color:var(--text)}
+.go{height:48px;padding:0 24px;border-radius:12px;background:var(--grad);font-weight:650;font-size:14px;color:white;display:flex;align-items:center;gap:8px;box-shadow:0 10px 28px -10px rgba(139,92,246,.9);white-space:nowrap}
+.go:hover{filter:brightness(1.1);box-shadow:0 14px 34px -10px rgba(139,92,246,1)}
+.go svg{width:18px;height:18px;transition:transform .3s var(--spring)}
+.go:hover svg{transform:translateY(2px)}
+.herosub{display:flex;align-items:center;gap:10px;padding:10px 6px 0;font-size:12px;color:var(--faint)}
+.herosub kbd{font:11px var(--mono);padding:1px 5px;border-radius:4px;border:1px solid var(--line-2);color:var(--muted)}
+.herosub .stats{color:var(--muted)}
+.herosub .stats b{color:var(--text);font-weight:600;font-variant-numeric:tabular-nums}
+.herosub .dot{margin:0 8px;color:var(--faint)}
+
+/* list + details drawer side by side */
+.body{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 0;transition:grid-template-columns .35s var(--ease)}
+.body.open{grid-template-columns:minmax(0,1fr) 400px}
+.listwrap{display:flex;flex-direction:column;min-height:0;min-width:0;overflow:hidden}
+.listhead{display:flex;align-items:center;gap:10px;padding:4px 20px 0;border-bottom:1px solid var(--line)}
+.tabs{position:relative;display:flex;gap:4px}
+.tabs .nav{position:relative;display:flex;align-items:center;gap:7px;height:44px;padding:0 12px;color:var(--muted);font-size:13.5px;font-weight:550;white-space:nowrap}
+.tabs .nav:hover{color:var(--text)}
+.tabs .nav.on{color:var(--text)}
+.nav .n{font-size:11.5px;color:var(--faint);font-variant-numeric:tabular-nums;transition:color .2s;min-width:10px}
 .nav.on .n{color:#c4b5fd}
 .nav .n.bump{animation:bump .4s var(--spring)}
 @keyframes bump{50%{transform:scale(1.45);color:#fff}}
-.side .sec{font-size:12px;font-weight:600;color:var(--faint);padding:16px 10px 6px}
-.side .grow{flex:1;min-height:10px}
-.card{padding:12px 13px;border-radius:12px;margin-top:8px}
-.speedcard{background:linear-gradient(160deg,rgba(139,92,246,.18),rgba(34,211,238,.08));border:1px solid rgba(139,92,246,.25)}
-.speedcard .lbl{font-size:11px;color:var(--muted)}
-.speedcard .val{font-size:22px;font-weight:650;letter-spacing:-.3px;font-variant-numeric:tabular-nums}
-.speedcard .sub{font-size:11.5px;color:var(--muted)}
-.speedcard .stats{display:flex;gap:14px;margin-top:10px;padding-top:9px;border-top:1px solid rgba(255,255,255,.08);font-size:11.5px;color:var(--muted)}
-.speedcard .stats b{display:block;color:var(--text);font-size:12.5px;font-weight:600;font-variant-numeric:tabular-nums}
-.updcard{background:rgba(52,211,153,.09);border:1px solid rgba(52,211,153,.3);display:none;animation:panelIn .5s var(--ease)}
-.updcard.on{display:block}
-.updcard b{display:block;font-size:12.5px}
-.updcard span{font-size:11.5px;color:var(--muted)}
-.updcard button{margin-top:8px;width:100%;height:30px;border-radius:8px;background:rgba(52,211,153,.18);color:#a7f3d0;font-size:12px;font-weight:600}
-.updcard button:hover{background:rgba(52,211,153,.28)}
-.schedcard{background:rgba(96,165,250,.08);border:1px solid rgba(96,165,250,.25);display:none;font-size:11.5px;color:var(--muted)}
-.schedcard.on{display:block}
-.schedcard b{color:#bfdbfe;display:block;font-size:12px}
-.sidebtns{display:flex;gap:6px;margin-top:10px}
-.sidebtn{flex:1;height:34px;border-radius:9px;border:1px solid var(--line);color:var(--muted);display:flex;align-items:center;justify-content:center;gap:7px;font-size:12.5px}
-.sidebtn:hover{color:var(--text);border-color:var(--line-2);background:var(--panel-2)}
-.sidebtn svg{width:16px;height:16px}
-.sidebtn:hover svg.gear{transform:rotate(60deg)}
-.sidebtn svg.gear{transition:transform .5s var(--ease)}
-
-/* ---------- main ---------- */
-.main{display:grid;grid-template-rows:auto 1fr auto;gap:12px;min-width:0;min-height:0}
-.addbar{display:flex;gap:10px;padding:10px;align-items:center}
-.url{flex:1;display:flex;align-items:center;gap:10px;background:rgba(0,0,0,.28);border:1px solid var(--line);border-radius:11px;padding:0 12px;height:44px;transition:border-color .2s,box-shadow .25s}
-.url:focus-within{border-color:rgba(139,92,246,.7);box-shadow:0 0 0 4px rgba(139,92,246,.15)}
-.url svg{width:18px;height:18px;color:var(--faint);flex:none;transition:color .2s,transform .3s var(--spring)}
-.url:focus-within svg{color:#c4b5fd;transform:rotate(-20deg)}
-.url input{flex:1;background:none;border:0;outline:none;font-size:14px;user-select:text;min-width:0}
-.url input::placeholder{color:var(--faint)}
-.conns{display:flex;align-items:center;gap:8px;height:44px;padding:0 12px;border-radius:11px;background:rgba(0,0,0,.28);border:1px solid var(--line);color:var(--muted);font-size:12.5px;white-space:nowrap}
-.conns select{background:transparent;border:0;outline:none;color:var(--text);font-weight:600;cursor:pointer}
-option{background:#151722;color:var(--text)}
-.go{height:44px;padding:0 20px;border-radius:11px;background:var(--grad);background-size:160% 160%;font-weight:650;color:white;display:flex;align-items:center;gap:8px;box-shadow:0 10px 28px -10px rgba(139,92,246,.9);white-space:nowrap;animation:gradmove 6s ease infinite}
-@keyframes gradmove{50%{background-position:100% 100%}}
-.go:hover{filter:brightness(1.1);box-shadow:0 14px 34px -10px rgba(139,92,246,1)}
-.go svg{width:17px;height:17px;transition:transform .3s var(--spring)}
-.go:hover svg{transform:translateY(2px)}
-
-.listwrap{display:flex;flex-direction:column;min-height:0;overflow:hidden}
-.listhead{display:flex;align-items:center;gap:12px;padding:14px 18px 10px}
-.listhead h2{margin:0;font-size:15px;font-weight:650}
-.listhead .hint{color:var(--faint);font-size:12px}
-.listhead .sp{flex:1}
+.navind{position:absolute;bottom:-1px;left:0;height:2px;width:0;border-radius:2px;background:var(--grad);transition:transform .38s var(--ease),width .38s var(--ease),opacity .2s;pointer-events:none;opacity:0}
 .search{display:flex;align-items:center;gap:7px;background:rgba(0,0,0,.25);border:1px solid var(--line);border-radius:9px;padding:0 10px;height:32px;transition:border-color .2s}
 .search:focus-within{border-color:rgba(139,92,246,.6)}
 .search svg{width:14px;height:14px;color:var(--faint)}
 .search input{background:none;border:0;outline:none;width:170px;font-size:12.5px;user-select:text}
 .ghost{height:32px;padding:0 12px;border-radius:9px;border:1px solid var(--line);color:var(--muted);font-size:12.5px;white-space:nowrap}
 .ghost:hover{color:var(--text);border-color:var(--line-2)}
+.chips{display:flex;align-items:center;gap:6px;padding:12px 20px 8px;flex-wrap:wrap}
+.chip{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;border-radius:15px;border:1px solid var(--line);color:var(--muted);font-size:12.5px}
+.chip svg{width:14px;height:14px}
+.chip:hover{color:var(--text);border-color:var(--line-2)}
+.chip.on{color:var(--text);background:rgba(139,92,246,.16);border-color:rgba(139,92,246,.5)}
+.chip .n:empty,.chip .n.zero{display:none}
+.chips h2{display:none}
+.chips .hint{color:var(--faint);font-size:12px;margin-inline-end:6px}
+.body.open .chip span[data-t]{display:none}          /* drawer open: file types as icons */
+.body.open .chips .hint{display:none}
 
 .rows{overflow-y:auto;overflow-x:hidden;flex:1;padding:2px 0 10px}
 .rows::-webkit-scrollbar{width:10px}.rows::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:10px;border:3px solid transparent;background-clip:content-box}
@@ -184,12 +194,12 @@ option{background:#151722;color:var(--text)}
 .ways button svg{width:15px;height:15px;color:#c4b5fd}
 .empty.small .art,.empty.small .ways{display:none}
 
-/* ---------- details ---------- */
-.details{display:grid;grid-template-columns:1fr 300px;gap:18px;padding:16px 18px;min-height:0;animation:panelIn .35s var(--ease);position:relative}
-.details .dclose{position:absolute;top:10px;inset-inline-end:10px}
-.details.hide{display:none}
-.dleft{min-width:0;display:flex;flex-direction:column;gap:12px}
-.dtitle{display:flex;align-items:center;gap:10px;min-width:0;padding-inline-end:4px}
+/* ---------- details drawer ---------- */
+.details{display:flex;flex-direction:column;gap:16px;padding:18px 20px;min-height:0;min-width:0;overflow-y:auto;border-inline-start:1px solid var(--line);background:rgba(255,255,255,.02);position:relative}
+.details.hide{visibility:hidden}
+.details .dclose{position:absolute;top:12px;inset-inline-end:12px}
+.dleft{min-width:0;display:flex;flex-direction:column;gap:14px}
+.dtitle{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;min-width:0;padding-inline-end:36px}
 .dtitle b{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .dtitle span{font-size:12px;color:var(--faint);white-space:nowrap}
 .d-thumb{width:64px;height:36px;border-radius:6px;object-fit:cover;border:1px solid var(--line);display:none;flex:none}
@@ -198,7 +208,7 @@ option{background:#151722;color:var(--text)}
 canvas{display:block;width:100%}
 #segs{height:34px;border-radius:8px}
 #graph{height:74px}
-.info{display:grid;grid-template-columns:auto 1fr;gap:7px 14px;font-size:12.5px;align-content:start;margin:0;padding-inline-end:30px}
+.info{display:grid;grid-template-columns:auto 1fr;gap:8px 14px;font-size:12.5px;align-content:start;margin:0}
 .info dt{color:var(--faint)}
 .info dd{margin:0;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums;user-select:text}
 .dbtns{display:flex;gap:8px;margin-top:12px}
@@ -319,18 +329,14 @@ input[type=time].inp{color-scheme:dark;width:116px}
 .updbox pre{white-space:pre-wrap;font:12px var(--font);color:var(--muted);margin:6px 0 10px;max-height:120px;overflow:auto}
 
 @media (max-width: 1100px){
-  .app{grid-template-columns:64px 1fr}
-  .side{padding:14px 8px;align-items:stretch}
-  .brand{justify-content:center;padding:2px 0 16px}.brand > div:last-child{display:none}
-  .nav{justify-content:center;padding:9px 0}.nav > span{display:none}
-  .side .sec{height:1px;padding:0;overflow:hidden;font-size:0;background:var(--line);margin:10px 6px}
-  .card{display:none !important}
-  .sidebtn span{display:none}
-  .details{grid-template-columns:1fr}
-  .details .info{display:none}.details .dbtns{margin-top:0}
+  .body.open{grid-template-columns:minmax(0,1fr) 0}
+  .details{position:fixed;top:60px;bottom:0;inset-inline-end:0;width:min(400px,92vw);z-index:20;background:#11131b;box-shadow:-30px 0 60px -20px rgba(0,0,0,.7);transform:translateX(0);transition:transform .35s var(--ease),visibility .35s}
+  .details.hide{transform:translateX(105%)}
+  [dir=rtl] .details.hide{transform:translateX(-105%)}
+  #spark{display:none}
 }
-@media (max-height: 720px){ .details .dleft > div:last-child{display:none} }
-@media (max-width: 820px){ .conns > span:first-child,.go span{display:none} .search input{width:110px} }
+@media (max-width: 860px){ .conns > span:first-child,.go span,.speedcard .sub,.chip span[data-t]{display:none} .search input{width:110px} .chipcard span{display:none} }
+@media (max-height: 640px){ #graph,#graph + *{display:none} }
 @media (prefers-reduced-motion: reduce){
   *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important}
 }
@@ -338,43 +344,23 @@ input[type=time].inp{color-scheme:dark;width:116px}
 </head>
 <body>
 <div class="app">
-  <!-- sidebar -->
-  <aside class="side glass enter">
+  <header class="top">
     <div class="brand">
       <div class="logo"><svg width="18" height="18" viewBox="0 0 24 24"><path d="M13.5 2 5 14h6l-1.5 8L19 9.5h-6z" fill="#fff"/></svg></div>
-      <div><b>FastGrab</b><small id="ver" class="ltr"></small></div>
+      <b>FastGrab</b><small id="ver" class="ltr"></small>
     </div>
-    <div class="navs" id="navs">
-      <div class="navind" id="navind"></div>
-      <button class="nav on" data-f="all"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg><span data-t="f_all"></span><span class="n" id="n-all">0</span></button>
-      <button class="nav" data-f="active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 4v12m0 0-5-5m5 5 5-5M5 20h14"/></svg><span data-t="f_active"></span><span class="n" id="n-active">0</span></button>
-      <button class="nav" data-f="completed"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="m8 12.5 2.7 2.7L16 9.8"/></svg><span data-t="f_completed"></span><span class="n" id="n-completed">0</span></button>
-      <button class="nav" data-f="stopped"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M10 9v6m4-6v6"/></svg><span data-t="f_stopped"></span><span class="n" id="n-stopped">0</span></button>
-      <div class="sec" data-t="categories"></div>
-      <button class="nav" data-f="video"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m10 9 5 3-5 3z"/></svg><span data-t="f_video"></span><span class="n" id="n-video">0</span></button>
-      <button class="nav" data-f="audio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 18V6l11-2v12"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg><span data-t="f_audio"></span><span class="n" id="n-audio">0</span></button>
-      <button class="nav" data-f="archive"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="3" width="16" height="18" rx="3"/><path d="M12 3v2m0 3v2m0 3v2"/></svg><span data-t="f_archive"></span><span class="n" id="n-archive">0</span></button>
-      <button class="nav" data-f="doc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg><span data-t="f_doc"></span><span class="n" id="n-doc">0</span></button>
-      <button class="nav" data-f="app"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M3 9h18"/></svg><span data-t="f_app"></span><span class="n" id="n-app">0</span></button>
+    <div class="speedcard" title="">
+      <canvas id="spark" aria-hidden="true"></canvas>
+      <div><div class="val ltr" id="tspeed">0 B/s</div><div class="sub" id="tsub"></div></div>
     </div>
+    <span class="sp"></span>
+    <div class="chipcard schedcard" id="schedcard"><b id="schedtitle"></b><span id="schedsub"></span></div>
+    <div class="chipcard updcard" id="updcard"><b id="updtitle"></b><span id="updsub"></span><button id="updbtn"></button></div>
+    <button class="topbtn" id="openSettings" data-t-title="settings"><svg class="gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+  </header>
 
-    <div class="grow"></div>
-    <div class="card updcard" id="updcard"><b id="updtitle"></b><span id="updsub"></span><button id="updbtn"></button></div>
-    <div class="card schedcard" id="schedcard"><b id="schedtitle"></b><span id="schedsub"></span></div>
-    <div class="card speedcard">
-      <div class="lbl" data-t="total_speed"></div>
-      <div class="val ltr" id="tspeed">0 B/s</div>
-      <div class="sub" id="tsub"></div>
-      <div class="stats"><div><span data-t="today"></span><b class="ltr" id="st-today">0 B</b></div><div><span data-t="all_time"></span><b class="ltr" id="st-total">0 B</b></div></div>
-    </div>
-    <div class="sidebtns">
-      <button class="sidebtn" id="openSettings"><svg class="gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg><span data-t="settings"></span></button>
-    </div>
-  </aside>
-
-  <!-- main -->
-  <main class="main">
-    <div class="addbar glass enter" style="animation-delay:.05s">
+  <section class="hero">
+    <div class="addbar">
       <div class="url">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1 1"/><path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1-1"/></svg>
         <input id="url" spellcheck="false" autocomplete="off" dir="auto">
@@ -384,11 +370,24 @@ input[type=time].inp{color-scheme:dark;width:116px}
       </div>
       <button class="go" id="go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 4v12m0 0-5-5m5 5 5-5M5 20h14"/></svg><span data-t="download"></span></button>
     </div>
+    <div class="herosub">
+      <span data-t="hero_hint"></span>
+      <span class="sp"></span>
+      <span class="stats"><span data-t="today"></span> <b class="ltr" id="st-today">0 B</b><span class="dot">·</span><span data-t="all_time"></span> <b class="ltr" id="st-total">0 B</b></span>
+    </div>
+  </section>
 
-    <section class="listwrap glass enter" style="animation-delay:.1s">
+  <div class="body" id="body">
+    <section class="listwrap">
       <div class="listhead">
-        <h2 id="title"></h2><span class="hint" id="hint"></span>
-        <span class="sp"></span>
+        <div class="navs tabs" id="navs" role="tablist">
+          <div class="navind" id="navind"></div>
+          <button class="nav tab on" data-f="all"><span data-t="f_all"></span><span class="n" id="n-all">0</span></button><button class="nav tab" data-f="active"><span data-t="f_active"></span><span class="n" id="n-active">0</span></button><button class="nav tab" data-f="completed"><span data-t="f_completed"></span><span class="n" id="n-completed">0</span></button><button class="nav tab" data-f="stopped"><span data-t="f_stopped"></span><span class="n" id="n-stopped">0</span></button>
+        </div>
+      </div>
+      <div class="chips">
+        <button class="nav chip" data-f="video"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m10 9 5 3-5 3z"/></svg><span data-t="f_video"></span><span class="n" id="n-video">0</span></button><button class="nav chip" data-f="audio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 18V6l11-2v12"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg><span data-t="f_audio"></span><span class="n" id="n-audio">0</span></button><button class="nav chip" data-f="archive"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="3" width="16" height="18" rx="3"/><path d="M12 3v2m0 3v2m0 3v2"/></svg><span data-t="f_archive"></span><span class="n" id="n-archive">0</span></button><button class="nav chip" data-f="doc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg><span data-t="f_doc"></span><span class="n" id="n-doc">0</span></button><button class="nav chip" data-f="app"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M3 9h18"/></svg><span data-t="f_app"></span><span class="n" id="n-app">0</span></button>
+        <span class="sp"></span><h2 id="title"></h2><span class="hint" id="hint"></span>
         <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="q" spellcheck="false" dir="auto"></div>
         <button class="ghost" id="clear" data-t="clear_completed"></button>
       </div>
@@ -404,9 +403,9 @@ input[type=time].inp{color-scheme:dark;width:116px}
           </div>
         </div>
       </div>
+    
     </section>
-
-    <section class="details glass hide" id="details">
+    <aside class="details hide" id="details" aria-label="Download details">
       <button class="ib dclose" id="d-close" data-t-title="close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
       <div class="dleft">
         <div class="dtitle"><img class="d-thumb" id="d-thumb" alt=""><b id="d-name" dir="auto"></b><span id="d-sub" class="ltr"></span></div>
@@ -430,8 +429,8 @@ input[type=time].inp{color-scheme:dark;width:116px}
         </dl>
         <div class="dbtns"><button id="d-open" data-t="open_file"></button><button id="d-folder" data-t="show_folder"></button></div>
       </div>
-    </section>
-  </main>
+    </aside>
+  </div>
 </div>
 
 <div class="modal" id="vmodal"><div class="mbox" id="vbox"></div></div>
@@ -505,7 +504,7 @@ input[type=time].inp{color-scheme:dark;width:116px}
 "use strict";
 /* ====================================================================== i18n */
 const I18N = {
-en:{today:"Today",all_time:"All time",w_paste:"Paste a link",w_ext:"Get the browser extension",empty_none_d:"No downloads match this filter or search.",m_starts:"Starts at {t}",m_left:"{t} left",m_connecting:"Connecting to {h}…",m_queued:"Waiting for a free slot",from_browser:"From your browser",e_generic:"Something went wrong. Try again.",e_refused:"The server refused the connection. Try again later.",e_dns:"Couldn't find the server. Check the link and your internet connection.",e_timeout:"The server stopped answering. Try again.",e_404:"File not found (404). The link may have expired, so get a fresh one.",e_403:"Access denied. If the site needs you to log in, start the download from your browser.",e_server:"The server had an error. Try again later.",e_space:"Not enough free disk space.",e_ssl:"The secure connection failed. Check that your PC's date and time are right.",e_changed:"The file changed on the server, so the download starts over.",e_dropped:"The connection dropped. Retry to continue where it stopped.",e_perm:"FastGrab can't save to the download folder. Choose another one in Settings.",f_all:"All downloads",f_active:"Downloading",f_completed:"Completed",f_stopped:"Paused & failed",categories:"Categories",f_video:"Video",f_audio:"Music",f_archive:"Archives",f_doc:"Documents",f_app:"Programs",
+en:{hero_hint:"Or press <kbd>Ctrl</kbd> + <kbd>V</kbd> anywhere, or drag a link into the window",today:"Today",all_time:"All time",w_paste:"Paste a link",w_ext:"Get the browser extension",empty_none_d:"No downloads match this filter or search.",m_starts:"Starts at {t}",m_left:"{t} left",m_connecting:"Connecting to {h}…",m_queued:"Waiting for a free slot",from_browser:"From your browser",e_generic:"Something went wrong. Try again.",e_refused:"The server refused the connection. Try again later.",e_dns:"Couldn't find the server. Check the link and your internet connection.",e_timeout:"The server stopped answering. Try again.",e_404:"File not found (404). The link may have expired, so get a fresh one.",e_403:"Access denied. If the site needs you to log in, start the download from your browser.",e_server:"The server had an error. Try again later.",e_space:"Not enough free disk space.",e_ssl:"The secure connection failed. Check that your PC's date and time are right.",e_changed:"The file changed on the server, so the download starts over.",e_dropped:"The connection dropped. Retry to continue where it stopped.",e_perm:"FastGrab can't save to the download folder. Choose another one in Settings.",f_all:"All downloads",f_active:"Downloading",f_completed:"Completed",f_stopped:"Paused & failed",categories:"Categories",f_video:"Video",f_audio:"Music",f_archive:"Archives",f_doc:"Documents",f_app:"Programs",
 total_speed:"Total speed",nothing:"Nothing downloading",active_n:"{n} active · {c} connections",settings:"Settings",connections:"Connections",download:"Download",
 url_ph:"Paste a download link or a video link (YouTube, TikTok, Instagram…)",search:"Search",clear_completed:"Clear completed",
 c_name:"Name",c_size:"Size",c_progress:"Progress",c_speed:"Speed",c_left:"Time left",c_status:"Status",
@@ -545,7 +544,7 @@ ext_seen:"Extension connected · last used {t}",ext_never:"No extension connecte
 ext_steps:["Click <b>Open extension folder</b> below.","In Chrome open <code>chrome://extensions</code> (Edge: <code>edge://extensions</code>).","Turn on <b>Developer mode</b> (top right in Chrome, left side in Edge).","Click <b>Load unpacked</b> and choose the folder that opened.","Click the FastGrab icon in the toolbar, paste the pairing key and click <b>Save</b>."],
 just_now:"just now",min_ago:"{n} min ago",h_ago:"{n} h ago",new_key_t:"New pairing key created",new_key_d:"Paste it into the extension again",
 },
-ar:{today:"اليوم",all_time:"الإجمالي",w_paste:"الصق رابطًا",w_ext:"احصل على إضافة المتصفح",empty_none_d:"لا توجد تنزيلات تطابق هذا الفلتر أو البحث.",m_starts:"يبدأ في {t}",m_left:"متبقٍ {t}",m_connecting:"جارٍ الاتصال بـ {h}…",m_queued:"بانتظار دوره",from_browser:"من متصفحك",e_generic:"حدث خطأ. حاول مرة أخرى.",e_refused:"رفض الخادم الاتصال. حاول لاحقًا.",e_dns:"تعذّر العثور على الخادم. تحقق من الرابط ومن اتصالك بالإنترنت.",e_timeout:"توقف الخادم عن الرد. حاول مرة أخرى.",e_404:"الملف غير موجود (404). ربما انتهت صلاحية الرابط، احصل على رابط جديد.",e_403:"تم رفض الوصول. إذا كان الموقع يتطلب تسجيل الدخول، ابدأ التنزيل من متصفحك.",e_server:"حدث خطأ في الخادم. حاول لاحقًا.",e_space:"لا توجد مساحة كافية على القرص.",e_ssl:"فشل الاتصال الآمن. تأكد من صحة تاريخ ووقت الكمبيوتر.",e_changed:"تغيّر الملف على الخادم، لذلك يبدأ التنزيل من جديد.",e_dropped:"انقطع الاتصال. أعد المحاولة للمتابعة من حيث توقف.",e_perm:"لا يستطيع FastGrab الحفظ في مجلد التنزيل. اختر مجلدًا آخر من الإعدادات.",f_all:"كل التنزيلات",f_active:"قيد التنزيل",f_completed:"المكتملة",f_stopped:"المتوقفة والفاشلة",categories:"الفئات",f_video:"فيديو",f_audio:"موسيقى",f_archive:"أرشيفات",f_doc:"مستندات",f_app:"برامج",
+ar:{hero_hint:"أو اضغط <kbd>Ctrl</kbd> + <kbd>V</kbd> في أي مكان، أو اسحب رابطًا إلى النافذة",today:"اليوم",all_time:"الإجمالي",w_paste:"الصق رابطًا",w_ext:"احصل على إضافة المتصفح",empty_none_d:"لا توجد تنزيلات تطابق هذا الفلتر أو البحث.",m_starts:"يبدأ في {t}",m_left:"متبقٍ {t}",m_connecting:"جارٍ الاتصال بـ {h}…",m_queued:"بانتظار دوره",from_browser:"من متصفحك",e_generic:"حدث خطأ. حاول مرة أخرى.",e_refused:"رفض الخادم الاتصال. حاول لاحقًا.",e_dns:"تعذّر العثور على الخادم. تحقق من الرابط ومن اتصالك بالإنترنت.",e_timeout:"توقف الخادم عن الرد. حاول مرة أخرى.",e_404:"الملف غير موجود (404). ربما انتهت صلاحية الرابط، احصل على رابط جديد.",e_403:"تم رفض الوصول. إذا كان الموقع يتطلب تسجيل الدخول، ابدأ التنزيل من متصفحك.",e_server:"حدث خطأ في الخادم. حاول لاحقًا.",e_space:"لا توجد مساحة كافية على القرص.",e_ssl:"فشل الاتصال الآمن. تأكد من صحة تاريخ ووقت الكمبيوتر.",e_changed:"تغيّر الملف على الخادم، لذلك يبدأ التنزيل من جديد.",e_dropped:"انقطع الاتصال. أعد المحاولة للمتابعة من حيث توقف.",e_perm:"لا يستطيع FastGrab الحفظ في مجلد التنزيل. اختر مجلدًا آخر من الإعدادات.",f_all:"كل التنزيلات",f_active:"قيد التنزيل",f_completed:"المكتملة",f_stopped:"المتوقفة والفاشلة",categories:"الفئات",f_video:"فيديو",f_audio:"موسيقى",f_archive:"أرشيفات",f_doc:"مستندات",f_app:"برامج",
 total_speed:"السرعة الإجمالية",nothing:"لا يوجد تنزيل الآن",active_n:"{n} نشطة · {c} اتصالات",settings:"الإعدادات",connections:"الاتصالات",download:"تنزيل",
 url_ph:"الصق رابط تنزيل أو رابط فيديو (YouTube، TikTok، Instagram…)",search:"بحث",clear_completed:"مسح المكتملة",
 c_name:"الاسم",c_size:"الحجم",c_progress:"التقدم",c_speed:"السرعة",c_left:"الوقت المتبقي",c_status:"الحالة",
@@ -585,7 +584,7 @@ ext_seen:"الإضافة متصلة · آخر استخدام {t}",ext_never:"ل�
 ext_steps:["انقر <b>فتح مجلد الإضافة</b> في الأسفل.","في Chrome افتح <code>chrome://extensions</code> (في Edge: <code>edge://extensions</code>).","فعّل <b>وضع المطوّر</b> (أعلى اليمين في Chrome، الجانب الأيسر في Edge).","انقر <b>تحميل الإضافة غير المضغوطة</b> واختر المجلد الذي فُتح.","انقر أيقونة FastGrab في شريط الأدوات، والصق مفتاح الاقتران ثم انقر <b>حفظ</b>."],
 just_now:"الآن",min_ago:"قبل {n} دقيقة",h_ago:"قبل {n} ساعة",new_key_t:"تم إنشاء مفتاح اقتران جديد",new_key_d:"الصقه في الإضافة مرة أخرى",
 },
-he:{today:"היום",all_time:"סה״כ",w_paste:"הדבק קישור",w_ext:"התקן את תוסף הדפדפן",empty_none_d:"אין הורדות שמתאימות למסנן או לחיפוש.",m_starts:"מתחיל ב-{t}",m_left:"נותרו {t}",m_connecting:"מתחבר אל {h}…",m_queued:"ממתין לתורו",from_browser:"מהדפדפן שלך",e_generic:"משהו השתבש. נסה שוב.",e_refused:"השרת סירב לחיבור. נסה שוב מאוחר יותר.",e_dns:"השרת לא נמצא. בדוק את הקישור ואת החיבור לאינטרנט.",e_timeout:"השרת הפסיק לענות. נסה שוב.",e_404:"הקובץ לא נמצא (404). ייתכן שהקישור פג, השג קישור חדש.",e_403:"הגישה נדחתה. אם האתר דורש התחברות, התחל את ההורדה מהדפדפן.",e_server:"אירעה שגיאה בשרת. נסה שוב מאוחר יותר.",e_space:"אין מספיק מקום פנוי בדיסק.",e_ssl:"החיבור המאובטח נכשל. ודא שהתאריך והשעה במחשב נכונים.",e_changed:"הקובץ השתנה בשרת, ולכן ההורדה מתחילה מחדש.",e_dropped:"החיבור נותק. נסה שוב כדי להמשיך מהמקום שבו נעצר.",e_perm:"FastGrab לא יכול לשמור בתיקיית ההורדות. בחר תיקייה אחרת בהגדרות.",f_all:"כל ההורדות",f_active:"בהורדה",f_completed:"הושלמו",f_stopped:"מושהות ונכשלו",categories:"קטגוריות",f_video:"וידאו",f_audio:"מוזיקה",f_archive:"ארכיונים",f_doc:"מסמכים",f_app:"תוכנות",
+he:{hero_hint:"או לחץ <kbd>Ctrl</kbd> + <kbd>V</kbd> בכל מקום, או גרור קישור לחלון",today:"היום",all_time:"סה״כ",w_paste:"הדבק קישור",w_ext:"התקן את תוסף הדפדפן",empty_none_d:"אין הורדות שמתאימות למסנן או לחיפוש.",m_starts:"מתחיל ב-{t}",m_left:"נותרו {t}",m_connecting:"מתחבר אל {h}…",m_queued:"ממתין לתורו",from_browser:"מהדפדפן שלך",e_generic:"משהו השתבש. נסה שוב.",e_refused:"השרת סירב לחיבור. נסה שוב מאוחר יותר.",e_dns:"השרת לא נמצא. בדוק את הקישור ואת החיבור לאינטרנט.",e_timeout:"השרת הפסיק לענות. נסה שוב.",e_404:"הקובץ לא נמצא (404). ייתכן שהקישור פג, השג קישור חדש.",e_403:"הגישה נדחתה. אם האתר דורש התחברות, התחל את ההורדה מהדפדפן.",e_server:"אירעה שגיאה בשרת. נסה שוב מאוחר יותר.",e_space:"אין מספיק מקום פנוי בדיסק.",e_ssl:"החיבור המאובטח נכשל. ודא שהתאריך והשעה במחשב נכונים.",e_changed:"הקובץ השתנה בשרת, ולכן ההורדה מתחילה מחדש.",e_dropped:"החיבור נותק. נסה שוב כדי להמשיך מהמקום שבו נעצר.",e_perm:"FastGrab לא יכול לשמור בתיקיית ההורדות. בחר תיקייה אחרת בהגדרות.",f_all:"כל ההורדות",f_active:"בהורדה",f_completed:"הושלמו",f_stopped:"מושהות ונכשלו",categories:"קטגוריות",f_video:"וידאו",f_audio:"מוזיקה",f_archive:"ארכיונים",f_doc:"מסמכים",f_app:"תוכנות",
 total_speed:"מהירות כוללת",nothing:"אין הורדות כרגע",active_n:"{n} פעילות · {c} חיבורים",settings:"הגדרות",connections:"חיבורים",download:"הורדה",
 url_ph:"הדבק קישור להורדה או קישור לווידאו (YouTube,‏ TikTok,‏ Instagram…)",search:"חיפוש",clear_completed:"נקה הושלמו",
 c_name:"שם",c_size:"גודל",c_progress:"התקדמות",c_speed:"מהירות",c_left:"זמן נותר",c_status:"מצב",
@@ -799,9 +798,10 @@ function render(stagger){
     if (["paused","failed"].includes(it.status)) c.stopped++;
     const k = cat(it); if (k in c) c[k]++;
   }
-  for (const k in c){ const e=$("#n-"+k); if(!e) continue; if (counts[k]!==undefined && counts[k]!==c[k]){ e.classList.remove("bump"); void e.offsetWidth; e.classList.add("bump"); } counts[k]=c[k]; e.textContent=c[k]; }
+  for (const k in c){ const e=$("#n-"+k); if(!e) continue; if (counts[k]!==undefined && counts[k]!==c[k]){ e.classList.remove("bump"); void e.offsetWidth; e.classList.add("bump"); } counts[k]=c[k]; e.textContent=c[k]; e.classList.toggle("zero", !c[k]); }
   const running = items.filter(i=>i.status==="downloading");
   speedTarget = running.reduce((a,i)=>a+(i.speed||0),0);
+  if (Date.now() - (render.lastSpark||0) > 900){ render.lastSpark = Date.now(); totalHist.push(speedTarget); if (totalHist.length>60) totalHist.shift(); drawSpark(); }
   const conns = running.reduce((a,i)=>a+(i.active||0),0);
   $("#tsub").innerHTML = running.length ? t("active_n",{n:B(running.length),c:B(conns)}) : esc(t("nothing"));
   document.title = running.length ? `${fmtSize(speedTarget)}/s · FastGrab` : "FastGrab";
@@ -842,6 +842,7 @@ function renderSide(){
 function renderDetails(){
   const it = state.items.find(i=>i.id===selected);
   $("#details").classList.toggle("hide", !it);
+  $("#body").classList.toggle("open", !!it);
   if (!it) return;
   $("#d-name").textContent = it.filename;
   $("#d-sub").textContent = it.size ? fmtSize(it.size) : "";
@@ -925,6 +926,19 @@ function drawGraph(h){
   ctx.strokeStyle=lg; ctx.lineWidth=2; ctx.lineJoin="round"; ctx.stroke();
   const [lx,ly] = pts[pts.length-1]; ctx.fillStyle="#22d3ee"; ctx.beginPath(); ctx.arc(lx,ly,3,0,7); ctx.fill();
 }
+// the top bar's small graph: total speed over the last minute
+const totalHist = [];
+function drawSpark(){
+  const cv = $("#spark"); if (!cv || !cv.offsetWidth) return;
+  const [ctx,W,H] = setupCanvas(cv, true), h = totalHist, N = 60;
+  if (h.length < 2 || !Math.max(...h)){ ctx.strokeStyle="rgba(255,255,255,.12)"; ctx.lineWidth=1.5; ctx.beginPath(); ctx.moveTo(0,H-3); ctx.lineTo(W,H-3); ctx.stroke(); return; }
+  const max = Math.max(...h)*1.15, step = W/(N-1), off = N-h.length;
+  const pts = h.map((v,i)=>[(off+i)*step, H-2-(v/max)*(H-5)]);
+  ctx.beginPath(); pts.forEach(([x,y],i)=> i?ctx.lineTo(x,y):ctx.moveTo(x,y)); ctx.lineTo(pts[pts.length-1][0],H); ctx.lineTo(pts[0][0],H); ctx.closePath();
+  const g = ctx.createLinearGradient(0,0,0,H); g.addColorStop(0,"rgba(139,92,246,.4)"); g.addColorStop(1,"rgba(34,211,238,0)"); ctx.fillStyle=g; ctx.fill();
+  ctx.beginPath(); pts.forEach(([x,y],i)=> i?ctx.lineTo(x,y):ctx.moveTo(x,y));
+  const lg = ctx.createLinearGradient(0,0,W,0); lg.addColorStop(0,"#8b5cf6"); lg.addColorStop(1,"#22d3ee"); ctx.strokeStyle=lg; ctx.lineWidth=1.8; ctx.lineJoin="round"; ctx.stroke();
+}
 // total speed counts smoothly to its new value
 let speedTarget = 0, speedShown = 0;
 function animSpeed(){ speedShown += (speedTarget-speedShown)*(speedTarget ? 0.12 : 0.25); if (Math.abs(speedTarget-speedShown) < Math.max(1024, speedTarget*0.005)) speedShown=speedTarget; $("#tspeed").textContent = fmtSize(speedShown)+"/s"; requestAnimationFrame(animSpeed); }
@@ -998,7 +1012,9 @@ function setFilter(f, quiet){
   filter=f; document.querySelectorAll(".nav").forEach(n=>n.classList.toggle("on",n.dataset.f===f));
   const nav = document.querySelector(`.nav[data-f="${f}"]`);
   $("#title").textContent = t("f_"+f);
-  const ind = $("#navind"); if (nav){ ind.style.opacity=1; ind.style.transform=`translateY(${nav.offsetTop}px)`; }
+  const ind = $("#navind");      // underline under the status tab (file-type chips light up themselves)
+  if (nav && nav.classList.contains("tab")){ ind.style.opacity=1; ind.style.width=nav.offsetWidth+"px"; ind.style.transform=`translateX(${nav.offsetLeft}px)`; }
+  else ind.style.opacity=0;
   if (!quiet) render(true); else render();
 }
 /* ------------------------------------------------------------ update popup */
