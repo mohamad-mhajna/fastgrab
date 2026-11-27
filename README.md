@@ -29,7 +29,7 @@ The server limits each connection to 5 MB/s, as many real servers do. Each resul
 - **Scheduler:** download overnight, then sleep or shut down the PC
 - **Auto-update** for both the app and video support, verified by SHA-256
 - **English, العربية and עברית**, with a full right-to-left layout
-- **Live connections map** showing every connection filling its part of the file
+- **See every connection:** each download's progress bar shows every connection filling its own part of the file
 
 > Only download videos you have the right to save.
 
@@ -72,7 +72,7 @@ Press **Ctrl+C** to pause; run the same command again to resume. On Windows, `in
 python -m unittest discover -s tests -v
 ```
 
-90+ checks run on Windows, macOS and Linux through GitHub Actions. A local test server can throttle, cut or refuse connections, and every download is verified by SHA-256. Releases are only published after the built `FastGrab.exe` itself passes the tests.
+100+ checks run on Windows, macOS and Linux through GitHub Actions. A local test server can throttle, cut or refuse connections, and every download is verified by SHA-256. Releases are only published after the built `FastGrab.exe` itself passes the tests.
 
 <details>
 <summary><b>What the tests cover</b></summary>
@@ -84,7 +84,7 @@ python -m unittest discover -s tests -v
 | `test_features` (11) | scheduler, when-done countdown, settings and languages, extension pairing key and cookies |
 | `test_tray` (13) | closing the window keeps downloading, one window at a time, Pause all / Resume all; on Windows the real tray icon, notifications and keep-awake |
 | `test_update` (5) | verified yt-dlp updates with fallback; a full self-update and restart; no update offered before its files are uploaded |
-| `ui_e2e.py` (31) | the window in a real Chrome: filters and search, the update popup end to end (Later, Update now, Arabic layout) |
+| `ui_e2e.py` (41) | the window in a real Chrome: filters and search, per-connection progress in each row, plain-language errors, the details panel, stats, the empty screen, and the update popup end to end (Later, Update now, Arabic layout) |
 | `extension_e2e.py` (13) | the extension in a real Chrome: catching downloads, cookies, right-click menu, fallback when FastGrab is closed |
 
 </details>

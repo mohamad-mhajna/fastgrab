@@ -105,6 +105,53 @@ def main():
             pg.wait_for_timeout(900)
             check("search 'mp' finds 2, clearing shows 4", found == 2 and visible() == 4 and in_page() == 4,
                   f"{found} then {visible()}")
+            # redesign: details only for a download you pick, plain-language errors, stats
+            hidden = lambda: pg.evaluate("document.querySelector('#details').classList.contains('hide')")
+            check("no details panel until you pick a download", hidden())
+            pg.click("#rows .row >> nth=0")
+            pg.wait_for_timeout(400)
+            check("clicking a download opens its details", not hidden())
+            pg.click("#rows .row >> nth=0")
+            pg.wait_for_timeout(400)
+            check("clicking it again closes them", hidden())
+            pg.click("#rows .row >> nth=1")
+            pg.wait_for_timeout(300)
+            pg.keyboard.press("Escape")
+            pg.wait_for_timeout(300)
+            check("Escape closes the details", hidden())
+            pg.click("#rows .row >> nth=1")
+            pg.click("#d-close")
+            pg.wait_for_timeout(300)
+            check("the close button closes the details", hidden())
+            check("stats count today's downloads", pg.inner_text("#st-today") != "0 B", pg.inner_text("#st-today"))
+            call("/api/add", {"url": "http://127.0.0.1:1/nothing-here.bin", "dir": tmp})
+            pg.wait_for_timeout(2500)
+            row_text = "[...document.querySelectorAll('#rows .row')].find(r=>r.innerText.includes(NAME))"
+            failed = pg.evaluate(f"({row_text.replace('NAME', repr('nothing-here.bin'))})?.innerText || ''")
+            check("errors in plain words", "refused the connection" in failed and "Errno" not in failed, failed)
+            slow = Server(size_mb=60, rate_kb=600)
+            try:
+                call("/api/add", {"url": slow.url("/big-iso.iso"), "dir": tmp, "connections": 8})
+                pg.wait_for_timeout(3500)
+                row = row_text.replace("NAME", repr("big-iso.iso"))
+                n = pg.evaluate(f"({row})?.querySelectorAll('.track .sg').length || 0")
+                check("a downloading row shows each connection's piece", n == 8, n)
+                meta = pg.evaluate(f"({row})?.querySelector('.meta').innerText || ''")
+                check("status line: progress, speed, time left, connections",
+                      " of " in meta and "MB/s" in meta and "left" in meta and "connections" in meta, meta)
+            finally:
+                slow.close()
+            for i in [x["id"] for x in call("/api/state")["items"]]:
+                call("/api/action", {"id": i, "action": "cancel"})
+            call("/api/clear-completed", {})
+            pg.wait_for_timeout(1500)
+            left = call("/api/state")["items"]
+            for x in left:
+                call("/api/action", {"id": x["id"], "action": "remove"})
+            pg.wait_for_timeout(1500)
+            check("empty screen offers ways to start", pg.is_visible("#w-paste") and pg.is_visible("#w-ext")
+                  and pg.evaluate("document.querySelectorAll('#emptyArt div').length") == 8,
+                  f"{len(call('/api/state')['items'])} items left")
             check("no page errors", not errors, errors)
             b.close()
     finally:

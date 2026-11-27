@@ -181,6 +181,7 @@ DEFAULT_SETTINGS = {
     "keep_awake": True,         # stop Windows sleeping while something is downloading
     "tray_hint_shown": False,
     "update_later": None,       # {"key": what the update popup showed, "until": time} after "Later"
+    "stats": None,              # downloaded files/bytes, all time and today (see Manager.count_done)
 }
 
 
@@ -349,6 +350,7 @@ class Manager:
                 it.sync_from_dl()
                 if it.status == "completed":
                     it.finished = time.time()
+                    self.count_done(it.size or it.downloaded or 0)
                     it.force = False
                     if it.kind == "video":
                         it.parts = []
@@ -358,6 +360,24 @@ class Manager:
 
         it.thread = threading.Thread(target=run, daemon=True)
         it.thread.start()
+
+    def count_done(self, nbytes):
+        """Add a finished download to the stats (call with self.lock held)."""
+        st = self.stats()
+        st["files"] += 1
+        st["bytes"] += nbytes
+        st["day_files"] += 1
+        st["day_bytes"] += nbytes
+        self.settings["stats"] = st
+
+    def stats(self):
+        today = time.strftime("%Y-%m-%d")
+        st = dict(self.settings.get("stats") or {})
+        for k in ("files", "bytes", "day_files", "day_bytes"):
+            st[k] = int(st.get(k) or 0)
+        if st.get("day") != today:                  # a new day: today's numbers start at 0
+            st.update(day=today, day_files=0, day_bytes=0)
+        return st
 
     def schedule_open(self):
         sc = self.settings["schedule"]
@@ -541,10 +561,11 @@ class Manager:
     def state(self):
         with self.lock:
             items = [it.view() for it in self.items.values()]
+            stats = self.stats()
         items.sort(key=lambda v: v["added"], reverse=True)
         p = self.power
-        settings = {k: v for k, v in self.settings.items() if k != "last_update_check"}
-        return {"items": items, "settings": settings, "version": fastgrab.__version__,
+        settings = {k: v for k, v in self.settings.items() if k not in ("last_update_check", "stats")}
+        return {"items": items, "settings": settings, "version": fastgrab.__version__, "stats": stats,
                 "video": {**fastgrab_video.status(), **VIDEO_INSTALL},
                 "schedule_open": self.schedule_open(),
                 "power": {"action": p["action"],
