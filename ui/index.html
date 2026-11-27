@@ -47,11 +47,6 @@ input,select{font:inherit;color:inherit}
 .brand:hover .logo svg{transform:rotate(-12deg) scale(1.1)}
 .brand b{font-size:15.5px;letter-spacing:.1px}
 .brand small{color:var(--faint);font-size:11.5px}
-/* live speed in the top bar: number + the last minute as a small graph */
-.speedcard{display:flex;align-items:center;gap:12px;margin-inline-start:18px;padding:0 14px 0 6px;height:40px;border-radius:12px;background:rgba(255,255,255,.035);border:1px solid var(--line)}
-#spark{width:110px;height:28px}
-.speedcard .val{font-size:15px;font-weight:650;font-variant-numeric:tabular-nums;line-height:1.1}
-.speedcard .sub{font-size:11px;color:var(--muted);white-space:nowrap}
 .chipcard{display:none;align-items:center;gap:8px;height:34px;padding:0 6px 0 12px;border-radius:10px;font-size:12px;white-space:nowrap;animation:panelIn .4s var(--ease)}
 .chipcard.on{display:flex}
 .chipcard b{font-weight:600}.chipcard span{color:var(--muted)}
@@ -68,7 +63,19 @@ input,select{font:inherit;color:inherit}
 .topbtn:hover svg{transform:rotate(60deg)}
 
 /* the link box is the first thing you see */
-.hero{padding:22px 20px 14px;flex:none}
+.hero{padding:22px 20px 16px;flex:none;display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:16px;align-items:stretch}
+.heromain{display:flex;flex-direction:column;justify-content:center;min-width:0}
+/* the speed is the number that matters: big, with the last minute drawn under it */
+.speedtile{position:relative;border-radius:18px;padding:14px 18px 10px;background:linear-gradient(135deg,rgba(139,92,246,.16),rgba(34,211,238,.07));border:1px solid rgba(139,92,246,.28);overflow:hidden;display:flex;flex-direction:column;justify-content:center;min-height:104px}
+.speedtile .live,.speedtile .rest{display:flex;flex-direction:column;gap:2px}
+.speedtile.idle .live,.speedtile:not(.idle) .rest{display:none}
+.bignum{font-size:34px;font-weight:700;letter-spacing:-.5px;line-height:1.05;font-variant-numeric:tabular-nums;color:#fff}
+.tsub{font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tsub b{color:var(--text);font-weight:600}
+.tsub .dot{margin:0 7px;color:var(--faint)}
+#spark{width:100%;height:34px;margin-top:6px;display:block}
+.speedtile:not(.idle){animation:tileOn .6s var(--ease)}
+@keyframes tileOn{from{box-shadow:0 0 0 0 rgba(139,92,246,.5)}to{box-shadow:0 0 0 18px rgba(139,92,246,0)}}
 .addbar{display:flex;gap:10px;align-items:center;padding:8px;border-radius:18px;background:rgba(255,255,255,.04);border:1px solid var(--line);transition:border-color .2s,box-shadow .3s}
 .addbar:focus-within{border-color:rgba(139,92,246,.55);box-shadow:0 0 0 5px rgba(139,92,246,.12),0 18px 50px -20px rgba(139,92,246,.55)}
 .url{flex:1;display:flex;align-items:center;gap:12px;padding:0 10px 0 12px;height:48px;min-width:0}
@@ -84,6 +91,7 @@ option{background:#151722;color:var(--text)}
 .go svg{width:18px;height:18px;transition:transform .3s var(--spring)}
 .go:hover svg{transform:translateY(2px)}
 .herosub{display:flex;align-items:center;gap:10px;padding:10px 6px 0;font-size:12px;color:var(--faint)}
+.addbar{flex:none}
 .herosub kbd{font:11px var(--mono);padding:1px 5px;border-radius:4px;border:1px solid var(--line-2);color:var(--muted)}
 .herosub .stats{color:var(--muted)}
 .herosub .stats b{color:var(--text);font-weight:600;font-variant-numeric:tabular-nums}
@@ -168,6 +176,23 @@ option{background:#151722;color:var(--text)}
 .track .sg + .sg{box-shadow:-1px 0 0 rgba(10,12,18,.95)}
 [dir=rtl] .track .sg + .sg{box-shadow:1px 0 0 rgba(10,12,18,.95)}
 .track.segmented .fill{display:none}
+.row.live{padding:16px 16px 15px;margin-top:6px;background:rgba(255,255,255,.04);border-color:var(--line);grid-template-columns:52px minmax(0,1fr) auto;gap:16px}
+.row.live + .row:not(.live){margin-top:14px}
+.row.live .ficon{width:52px;height:52px;border-radius:14px;font-size:12px}
+.row.live .rbody{gap:10px}
+.row.live .fn{font-size:15.5px}
+.row.live .rsz{font-size:22px;font-weight:700;color:var(--text);letter-spacing:-.3px}
+.row.live .track{height:10px;border-radius:8px}
+.row.live .r2{font-size:12.5px}
+.row.live .acts{opacity:1}
+.row.live .ib{width:36px;height:36px;background:rgba(255,255,255,.05)}
+.row.live .ib svg{width:18px;height:18px}
+.row.live.sel{background:rgba(139,92,246,.1);border-color:rgba(139,92,246,.4)}
+.row.done{padding:7px 12px}
+.row.done .ficon{width:32px;height:32px;border-radius:9px;font-size:9px}
+.row.done{grid-template-columns:32px minmax(0,1fr) auto}
+.row.done .rbody{gap:2px}
+.row.done .fn{font-weight:500;font-size:13px;color:#d6d9e2}
 .acts{display:flex;gap:2px;justify-content:flex-end;opacity:.55;transition:opacity .2s}
 .row:hover .acts,.row.sel .acts,.row:focus-within .acts{opacity:1}
 .ib{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;color:var(--muted)}
@@ -329,12 +354,14 @@ input[type=time].inp{color-scheme:dark;width:116px}
 .updbox pre{white-space:pre-wrap;font:12px var(--font);color:var(--muted);margin:6px 0 10px;max-height:120px;overflow:auto}
 
 @media (max-width: 1100px){
+  .hero{grid-template-columns:minmax(0,1fr) 260px}
+  .bignum{font-size:28px}
   .body.open{grid-template-columns:minmax(0,1fr) 0}
   .details{position:fixed;top:60px;bottom:0;inset-inline-end:0;width:min(400px,92vw);z-index:20;background:#11131b;box-shadow:-30px 0 60px -20px rgba(0,0,0,.7);transform:translateX(0);transition:transform .35s var(--ease),visibility .35s}
   .details.hide{transform:translateX(105%)}
   [dir=rtl] .details.hide{transform:translateX(-105%)}
-  #spark{display:none}
 }
+@media (max-width: 860px){ .hero{grid-template-columns:1fr} .speedtile{min-height:0} }
 @media (max-width: 860px){ .conns > span:first-child,.go span,.speedcard .sub,.chip span[data-t]{display:none} .search input{width:110px} .chipcard span{display:none} }
 @media (max-height: 640px){ #graph,#graph + *{display:none} }
 @media (prefers-reduced-motion: reduce){
@@ -349,10 +376,6 @@ input[type=time].inp{color-scheme:dark;width:116px}
       <div class="logo"><svg width="18" height="18" viewBox="0 0 24 24"><path d="M13.5 2 5 14h6l-1.5 8L19 9.5h-6z" fill="#fff"/></svg></div>
       <b>FastGrab</b><small id="ver" class="ltr"></small>
     </div>
-    <div class="speedcard" title="">
-      <canvas id="spark" aria-hidden="true"></canvas>
-      <div><div class="val ltr" id="tspeed">0 B/s</div><div class="sub" id="tsub"></div></div>
-    </div>
     <span class="sp"></span>
     <div class="chipcard schedcard" id="schedcard"><b id="schedtitle"></b><span id="schedsub"></span></div>
     <div class="chipcard updcard" id="updcard"><b id="updtitle"></b><span id="updsub"></span><button id="updbtn"></button></div>
@@ -360,7 +383,8 @@ input[type=time].inp{color-scheme:dark;width:116px}
   </header>
 
   <section class="hero">
-    <div class="addbar">
+    <div class="heromain">
+      <div class="addbar">
       <div class="url">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1 1"/><path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1-1"/></svg>
         <input id="url" spellcheck="false" autocomplete="off" dir="auto">
@@ -370,10 +394,18 @@ input[type=time].inp{color-scheme:dark;width:116px}
       </div>
       <button class="go" id="go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 4v12m0 0-5-5m5 5 5-5M5 20h14"/></svg><span data-t="download"></span></button>
     </div>
-    <div class="herosub">
-      <span data-t="hero_hint"></span>
-      <span class="sp"></span>
-      <span class="stats"><span data-t="today"></span> <b class="ltr" id="st-today">0 B</b><span class="dot">·</span><span data-t="all_time"></span> <b class="ltr" id="st-total">0 B</b></span>
+      <div class="herosub"><span data-t="hero_hint"></span></div>
+    </div>
+    <div class="speedtile idle" id="speedtile">
+      <div class="live">
+        <div class="bignum"><span class="ltr" id="tspeed">0 B/s</span></div>
+        <div class="tsub" id="tsub"></div>
+        <canvas id="spark" aria-hidden="true"></canvas>
+      </div>
+      <div class="rest">
+        <div class="bignum"><span class="ltr" id="st-today">0 B</span></div>
+        <div class="tsub"><span data-t="dl_today"></span><span class="dot">·</span><span data-t="all_time"></span> <b class="ltr" id="st-total">0 B</b></div>
+      </div>
     </div>
   </section>
 
@@ -504,7 +536,7 @@ input[type=time].inp{color-scheme:dark;width:116px}
 "use strict";
 /* ====================================================================== i18n */
 const I18N = {
-en:{hero_hint:"Or press <kbd>Ctrl</kbd> + <kbd>V</kbd> anywhere, or drag a link into the window",today:"Today",all_time:"All time",w_paste:"Paste a link",w_ext:"Get the browser extension",empty_none_d:"No downloads match this filter or search.",m_starts:"Starts at {t}",m_left:"{t} left",m_connecting:"Connecting to {h}…",m_queued:"Waiting for a free slot",from_browser:"From your browser",e_generic:"Something went wrong. Try again.",e_refused:"The server refused the connection. Try again later.",e_dns:"Couldn't find the server. Check the link and your internet connection.",e_timeout:"The server stopped answering. Try again.",e_404:"File not found (404). The link may have expired, so get a fresh one.",e_403:"Access denied. If the site needs you to log in, start the download from your browser.",e_server:"The server had an error. Try again later.",e_space:"Not enough free disk space.",e_ssl:"The secure connection failed. Check that your PC's date and time are right.",e_changed:"The file changed on the server, so the download starts over.",e_dropped:"The connection dropped. Retry to continue where it stopped.",e_perm:"FastGrab can't save to the download folder. Choose another one in Settings.",f_all:"All downloads",f_active:"Downloading",f_completed:"Completed",f_stopped:"Paused & failed",categories:"Categories",f_video:"Video",f_audio:"Music",f_archive:"Archives",f_doc:"Documents",f_app:"Programs",
+en:{dl_today:"downloaded today",hero_hint:"Or press <kbd>Ctrl</kbd> + <kbd>V</kbd> anywhere, or drag a link into the window",today:"Today",all_time:"All time",w_paste:"Paste a link",w_ext:"Get the browser extension",empty_none_d:"No downloads match this filter or search.",m_starts:"Starts at {t}",m_left:"{t} left",m_connecting:"Connecting to {h}…",m_queued:"Waiting for a free slot",from_browser:"From your browser",e_generic:"Something went wrong. Try again.",e_refused:"The server refused the connection. Try again later.",e_dns:"Couldn't find the server. Check the link and your internet connection.",e_timeout:"The server stopped answering. Try again.",e_404:"File not found (404). The link may have expired, so get a fresh one.",e_403:"Access denied. If the site needs you to log in, start the download from your browser.",e_server:"The server had an error. Try again later.",e_space:"Not enough free disk space.",e_ssl:"The secure connection failed. Check that your PC's date and time are right.",e_changed:"The file changed on the server, so the download starts over.",e_dropped:"The connection dropped. Retry to continue where it stopped.",e_perm:"FastGrab can't save to the download folder. Choose another one in Settings.",f_all:"All downloads",f_active:"Downloading",f_completed:"Completed",f_stopped:"Paused & failed",categories:"Categories",f_video:"Video",f_audio:"Music",f_archive:"Archives",f_doc:"Documents",f_app:"Programs",
 total_speed:"Total speed",nothing:"Nothing downloading",active_n:"{n} active · {c} connections",settings:"Settings",connections:"Connections",download:"Download",
 url_ph:"Paste a download link or a video link (YouTube, TikTok, Instagram…)",search:"Search",clear_completed:"Clear completed",
 c_name:"Name",c_size:"Size",c_progress:"Progress",c_speed:"Speed",c_left:"Time left",c_status:"Status",
@@ -544,7 +576,7 @@ ext_seen:"Extension connected · last used {t}",ext_never:"No extension connecte
 ext_steps:["Click <b>Open extension folder</b> below.","In Chrome open <code>chrome://extensions</code> (Edge: <code>edge://extensions</code>).","Turn on <b>Developer mode</b> (top right in Chrome, left side in Edge).","Click <b>Load unpacked</b> and choose the folder that opened.","Click the FastGrab icon in the toolbar, paste the pairing key and click <b>Save</b>."],
 just_now:"just now",min_ago:"{n} min ago",h_ago:"{n} h ago",new_key_t:"New pairing key created",new_key_d:"Paste it into the extension again",
 },
-ar:{hero_hint:"أو اضغط <kbd>Ctrl</kbd> + <kbd>V</kbd> في أي مكان، أو اسحب رابطًا إلى النافذة",today:"اليوم",all_time:"الإجمالي",w_paste:"الصق رابطًا",w_ext:"احصل على إضافة المتصفح",empty_none_d:"لا توجد تنزيلات تطابق هذا الفلتر أو البحث.",m_starts:"يبدأ في {t}",m_left:"متبقٍ {t}",m_connecting:"جارٍ الاتصال بـ {h}…",m_queued:"بانتظار دوره",from_browser:"من متصفحك",e_generic:"حدث خطأ. حاول مرة أخرى.",e_refused:"رفض الخادم الاتصال. حاول لاحقًا.",e_dns:"تعذّر العثور على الخادم. تحقق من الرابط ومن اتصالك بالإنترنت.",e_timeout:"توقف الخادم عن الرد. حاول مرة أخرى.",e_404:"الملف غير موجود (404). ربما انتهت صلاحية الرابط، احصل على رابط جديد.",e_403:"تم رفض الوصول. إذا كان الموقع يتطلب تسجيل الدخول، ابدأ التنزيل من متصفحك.",e_server:"حدث خطأ في الخادم. حاول لاحقًا.",e_space:"لا توجد مساحة كافية على القرص.",e_ssl:"فشل الاتصال الآمن. تأكد من صحة تاريخ ووقت الكمبيوتر.",e_changed:"تغيّر الملف على الخادم، لذلك يبدأ التنزيل من جديد.",e_dropped:"انقطع الاتصال. أعد المحاولة للمتابعة من حيث توقف.",e_perm:"لا يستطيع FastGrab الحفظ في مجلد التنزيل. اختر مجلدًا آخر من الإعدادات.",f_all:"كل التنزيلات",f_active:"قيد التنزيل",f_completed:"المكتملة",f_stopped:"المتوقفة والفاشلة",categories:"الفئات",f_video:"فيديو",f_audio:"موسيقى",f_archive:"أرشيفات",f_doc:"مستندات",f_app:"برامج",
+ar:{dl_today:"تم تنزيلها اليوم",hero_hint:"أو اضغط <kbd>Ctrl</kbd> + <kbd>V</kbd> في أي مكان، أو اسحب رابطًا إلى النافذة",today:"اليوم",all_time:"الإجمالي",w_paste:"الصق رابطًا",w_ext:"احصل على إضافة المتصفح",empty_none_d:"لا توجد تنزيلات تطابق هذا الفلتر أو البحث.",m_starts:"يبدأ في {t}",m_left:"متبقٍ {t}",m_connecting:"جارٍ الاتصال بـ {h}…",m_queued:"بانتظار دوره",from_browser:"من متصفحك",e_generic:"حدث خطأ. حاول مرة أخرى.",e_refused:"رفض الخادم الاتصال. حاول لاحقًا.",e_dns:"تعذّر العثور على الخادم. تحقق من الرابط ومن اتصالك بالإنترنت.",e_timeout:"توقف الخادم عن الرد. حاول مرة أخرى.",e_404:"الملف غير موجود (404). ربما انتهت صلاحية الرابط، احصل على رابط جديد.",e_403:"تم رفض الوصول. إذا كان الموقع يتطلب تسجيل الدخول، ابدأ التنزيل من متصفحك.",e_server:"حدث خطأ في الخادم. حاول لاحقًا.",e_space:"لا توجد مساحة كافية على القرص.",e_ssl:"فشل الاتصال الآمن. تأكد من صحة تاريخ ووقت الكمبيوتر.",e_changed:"تغيّر الملف على الخادم، لذلك يبدأ التنزيل من جديد.",e_dropped:"انقطع الاتصال. أعد المحاولة للمتابعة من حيث توقف.",e_perm:"لا يستطيع FastGrab الحفظ في مجلد التنزيل. اختر مجلدًا آخر من الإعدادات.",f_all:"كل التنزيلات",f_active:"قيد التنزيل",f_completed:"المكتملة",f_stopped:"المتوقفة والفاشلة",categories:"الفئات",f_video:"فيديو",f_audio:"موسيقى",f_archive:"أرشيفات",f_doc:"مستندات",f_app:"برامج",
 total_speed:"السرعة الإجمالية",nothing:"لا يوجد تنزيل الآن",active_n:"{n} نشطة · {c} اتصالات",settings:"الإعدادات",connections:"الاتصالات",download:"تنزيل",
 url_ph:"الصق رابط تنزيل أو رابط فيديو (YouTube، TikTok، Instagram…)",search:"بحث",clear_completed:"مسح المكتملة",
 c_name:"الاسم",c_size:"الحجم",c_progress:"التقدم",c_speed:"السرعة",c_left:"الوقت المتبقي",c_status:"الحالة",
@@ -584,7 +616,7 @@ ext_seen:"الإضافة متصلة · آخر استخدام {t}",ext_never:"ل�
 ext_steps:["انقر <b>فتح مجلد الإضافة</b> في الأسفل.","في Chrome افتح <code>chrome://extensions</code> (في Edge: <code>edge://extensions</code>).","فعّل <b>وضع المطوّر</b> (أعلى اليمين في Chrome، الجانب الأيسر في Edge).","انقر <b>تحميل الإضافة غير المضغوطة</b> واختر المجلد الذي فُتح.","انقر أيقونة FastGrab في شريط الأدوات، والصق مفتاح الاقتران ثم انقر <b>حفظ</b>."],
 just_now:"الآن",min_ago:"قبل {n} دقيقة",h_ago:"قبل {n} ساعة",new_key_t:"تم إنشاء مفتاح اقتران جديد",new_key_d:"الصقه في الإضافة مرة أخرى",
 },
-he:{hero_hint:"או לחץ <kbd>Ctrl</kbd> + <kbd>V</kbd> בכל מקום, או גרור קישור לחלון",today:"היום",all_time:"סה״כ",w_paste:"הדבק קישור",w_ext:"התקן את תוסף הדפדפן",empty_none_d:"אין הורדות שמתאימות למסנן או לחיפוש.",m_starts:"מתחיל ב-{t}",m_left:"נותרו {t}",m_connecting:"מתחבר אל {h}…",m_queued:"ממתין לתורו",from_browser:"מהדפדפן שלך",e_generic:"משהו השתבש. נסה שוב.",e_refused:"השרת סירב לחיבור. נסה שוב מאוחר יותר.",e_dns:"השרת לא נמצא. בדוק את הקישור ואת החיבור לאינטרנט.",e_timeout:"השרת הפסיק לענות. נסה שוב.",e_404:"הקובץ לא נמצא (404). ייתכן שהקישור פג, השג קישור חדש.",e_403:"הגישה נדחתה. אם האתר דורש התחברות, התחל את ההורדה מהדפדפן.",e_server:"אירעה שגיאה בשרת. נסה שוב מאוחר יותר.",e_space:"אין מספיק מקום פנוי בדיסק.",e_ssl:"החיבור המאובטח נכשל. ודא שהתאריך והשעה במחשב נכונים.",e_changed:"הקובץ השתנה בשרת, ולכן ההורדה מתחילה מחדש.",e_dropped:"החיבור נותק. נסה שוב כדי להמשיך מהמקום שבו נעצר.",e_perm:"FastGrab לא יכול לשמור בתיקיית ההורדות. בחר תיקייה אחרת בהגדרות.",f_all:"כל ההורדות",f_active:"בהורדה",f_completed:"הושלמו",f_stopped:"מושהות ונכשלו",categories:"קטגוריות",f_video:"וידאו",f_audio:"מוזיקה",f_archive:"ארכיונים",f_doc:"מסמכים",f_app:"תוכנות",
+he:{dl_today:"הורדו היום",hero_hint:"או לחץ <kbd>Ctrl</kbd> + <kbd>V</kbd> בכל מקום, או גרור קישור לחלון",today:"היום",all_time:"סה״כ",w_paste:"הדבק קישור",w_ext:"התקן את תוסף הדפדפן",empty_none_d:"אין הורדות שמתאימות למסנן או לחיפוש.",m_starts:"מתחיל ב-{t}",m_left:"נותרו {t}",m_connecting:"מתחבר אל {h}…",m_queued:"ממתין לתורו",from_browser:"מהדפדפן שלך",e_generic:"משהו השתבש. נסה שוב.",e_refused:"השרת סירב לחיבור. נסה שוב מאוחר יותר.",e_dns:"השרת לא נמצא. בדוק את הקישור ואת החיבור לאינטרנט.",e_timeout:"השרת הפסיק לענות. נסה שוב.",e_404:"הקובץ לא נמצא (404). ייתכן שהקישור פג, השג קישור חדש.",e_403:"הגישה נדחתה. אם האתר דורש התחברות, התחל את ההורדה מהדפדפן.",e_server:"אירעה שגיאה בשרת. נסה שוב מאוחר יותר.",e_space:"אין מספיק מקום פנוי בדיסק.",e_ssl:"החיבור המאובטח נכשל. ודא שהתאריך והשעה במחשב נכונים.",e_changed:"הקובץ השתנה בשרת, ולכן ההורדה מתחילה מחדש.",e_dropped:"החיבור נותק. נסה שוב כדי להמשיך מהמקום שבו נעצר.",e_perm:"FastGrab לא יכול לשמור בתיקיית ההורדות. בחר תיקייה אחרת בהגדרות.",f_all:"כל ההורדות",f_active:"בהורדה",f_completed:"הושלמו",f_stopped:"מושהות ונכשלו",categories:"קטגוריות",f_video:"וידאו",f_audio:"מוזיקה",f_archive:"ארכיונים",f_doc:"מסמכים",f_app:"תוכנות",
 total_speed:"מהירות כוללת",nothing:"אין הורדות כרגע",active_n:"{n} פעילות · {c} חיבורים",settings:"הגדרות",connections:"חיבורים",download:"הורדה",
 url_ph:"הדבק קישור להורדה או קישור לווידאו (YouTube,‏ TikTok,‏ Instagram…)",search:"חיפוש",clear_completed:"נקה הושלמו",
 c_name:"שם",c_size:"גודל",c_progress:"התקדמות",c_speed:"מהירות",c_left:"זמן נותר",c_status:"מצב",
@@ -772,7 +804,7 @@ function renderRow(it){
   el.querySelector(".rsz").textContent = it.status==="completed" ? "" : it.size ? pct.toFixed(1)+"%" : "";
   // progress track: hidden once done; while downloading each connection fills its own piece
   const tr = el.querySelector(".track");
-  tr.hidden = it.status==="completed";
+  tr.hidden = it.status==="completed" || (it.status==="failed" && !it.downloaded);
   const segs = it.status==="downloading" && it.size && it.kind!=="video" ? it.segments : [];
   tr.className = "track" + (it.status==="paused"?" paused":it.status==="failed"?" failed":waiting(it)||it.status==="queued"?" waiting":"") + (segs.length?" segmented":"");
   tr.querySelector(".fill").style.width = pct.toFixed(2)+"%";
@@ -783,6 +815,8 @@ function renderRow(it){
     d.style.insetInlineStart = (start/it.size*100).toFixed(3)+"%"; d.style.width = (Math.max(0,end-start)/it.size*100).toFixed(3)+"%";
     d.style.background = col+"2e";
     const f = d.firstChild; f.style.background = col; f.style.width = (end>start ? Math.max(0,pos-start)/(end-start)*100 : 0).toFixed(2)+"%"; });
+  el.classList.toggle("live", ["downloading","connecting"].includes(it.status));
+  el.classList.toggle("done", it.status==="completed");
   el.classList.toggle("sel", it.id === selected);
   el.setAttribute("aria-selected", it.id === selected);
   return el;
@@ -804,9 +838,12 @@ function render(stagger){
   if (Date.now() - (render.lastSpark||0) > 900){ render.lastSpark = Date.now(); totalHist.push(speedTarget); if (totalHist.length>60) totalHist.shift(); drawSpark(); }
   const conns = running.reduce((a,i)=>a+(i.active||0),0);
   $("#tsub").innerHTML = running.length ? t("active_n",{n:B(running.length),c:B(conns)}) : esc(t("nothing"));
+  $("#speedtile").classList.toggle("idle", !running.length);
   document.title = running.length ? `${fmtSize(speedTarget)}/s · FastGrab` : "FastGrab";
   // rows (removed rows slide out)
-  const list = $("#rows"), shown = items.filter(matches), keep = new Set(items.map(i=>i.id));
+  // what's happening now comes first, then waiting/paused/failed, then finished (newest first in each)
+  const rank = i => ["downloading","connecting"].includes(i.status) ? 0 : i.status==="completed" ? 2 : 1;
+  const list = $("#rows"), shown = items.filter(matches).sort((a,b)=>rank(a)-rank(b)), keep = new Set(items.map(i=>i.id));
   for (const [id,el] of rowEls) if (!keep.has(id)){ rowEls.delete(id); leave(el); }
   shown.forEach((it,i) => { const el = renderRow(it); if (stagger) { el.style.setProperty("--i", i); el.style.animation="none"; void el.offsetWidth; el.style.animation=""; }
     const live = [...list.children].filter(x=>!x.classList.contains("leaving"));
@@ -848,7 +885,7 @@ function renderDetails(){
   $("#d-sub").textContent = it.size ? fmtSize(it.size) : "";
   const th = $("#d-thumb"); if (it.thumbnail){ if (th.src!==it.thumbnail) th.src=it.thumbnail; th.style.display="block"; } else th.style.display="none";
   const sk = statusKey(it);
-  $("#d-status").textContent = t("st_"+sk) + (it.message && !["completed","downloading"].includes(it.status) ? " — "+errText(it.message) : "");
+  $("#d-status").textContent = t("st_"+sk) + (it.message && it.status==="failed" ? " — "+errText(it.message) : "");
   $("#d-status").title = msgText(it.message||"");
   $("#d-done").innerHTML = it.size ? t("of",{a:B(fmtSize(it.downloaded)),b:B(fmtSize(it.size))}) : B(fmtSize(it.downloaded));
   $("#d-dir").textContent = it.out_dir; $("#d-dir").title = it.out_dir;
